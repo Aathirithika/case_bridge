@@ -1,0 +1,29 @@
+
+> client@0.0.0 build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 1783 modules transformed.
+[31m✗[39m Build failed in 6.87s
+[31merror during build:
+[31msrc/pages/VoiceAssistantPage.jsx (13:7): "default" is not exported by "src/components/VoiceInput.jsx", imported by "src/pages/VoiceAssistantPage.jsx".[31m
+file: [36mE:/magic/casebridge/client/src/pages/VoiceAssistantPage.jsx:13:7[31m
+[33m
+11: } from 'lucide-react';
+12: import { useAccessibility } from '../contexts/AccessibilityContext';
+13: import VoiceInput from '../components/VoiceInput';
+           ^
+14: import LanguageSelector from '../components/LanguageSelector';
+15: import { getTranslation } from '../translations';
+[31m
+    at getRollupError (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/parseAst.js:400:41)
+    at error (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/parseAst.js:396:42)
+    at Module.error (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:17036:16)
+    at Module.traceVariable (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:17448:29)
+    at ModuleScope.findVariable (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:15066:39)
+    at FunctionScope.findVariable (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at Identifier.bind (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:5447:40)
+    at CallExpression.bind (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:2825:28)
+    at CallExpression.bind (file:///E:/magic/casebridge/client/node_modules/rollup/dist/es/shared/node-entry.js:12179:15)[39m
