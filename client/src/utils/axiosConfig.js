@@ -9,13 +9,15 @@ const api = axios.create({
     timeout: 10000, // 10 seconds
 });
 
-// Request interceptor - add auth token if available
+// Request interceptor – attach token only if one exists.  No crash if missing.
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        // If no token, the request goes out without an Authorization header.
+        // The server's protect() middleware will attach a guest user automatically.
         return config;
     },
     (error) => {
@@ -24,21 +26,16 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor - handle common errors
+// Response interceptor – log errors but never auto-redirect.
+// Components decide what to do on failure.
 api.interceptors.response.use(
-    (response) => {
-        return response;
-    },
+    (response) => response,
     (error) => {
-        // Log error for debugging
         if (error.response) {
-            // Server responded with error status
             console.error('API Error:', error.response.status, error.response.data);
         } else if (error.request) {
-            // Request made but no response received
             console.error('Network Error: No response from server', error.request);
         } else {
-            // Error in request setup
             console.error('Request Setup Error:', error.message);
         }
         return Promise.reject(error);
