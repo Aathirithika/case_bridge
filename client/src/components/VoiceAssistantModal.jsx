@@ -4,6 +4,14 @@ import { useAccessibility } from '../contexts/AccessibilityContext';
 import nlpProcessor from '../utils/nlpProcessor';
 import api from '../utils/axiosConfig';
 
+// ── Brown palette (replaces all blue)
+// Primary:   #C4956A  (sandy brown)
+// Dark:      #8B5E3C  (deep brown)
+// Light bg:  #F5EDE3  (warm cream)
+// Border:    #DDB896  (light brown border)
+// Text:      #6B3F1E  (dark brown text)
+// Gradient:  from-[#C4956A] to-[#8B5E3C]
+
 export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) {
     const {
         language,
@@ -17,22 +25,16 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
         speak,
     } = useAccessibility();
 
-    // ── Tab: 'chat' (new chatbot) | 'submit' (original submit-issue flow) ──
     const [activeTab, setActiveTab]         = useState('chat');
-
-    // ── Chat tab state ──
     const [chatHistory, setChatHistory]     = useState([]);
     const [chatInput, setChatInput]         = useState('');
     const [isSending, setIsSending]         = useState(false);
     const messagesEndRef                    = useRef(null);
-
-    // ── Submit tab state (original) ──
     const [inputMethod, setInputMethod]     = useState('voice');
     const [issueDescription, setIssueDescription] = useState('');
     const [nlpAnalysis, setNlpAnalysis]     = useState(null);
     const [isAnalyzing, setIsAnalyzing]     = useState(false);
 
-    // ── Sync voice transcript into whichever tab is active ──
     useEffect(() => {
         if (!transcript) return;
         if (activeTab === 'chat') {
@@ -43,12 +45,9 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
         }
     }, [transcript, activeTab]);
 
-    // ── Auto-scroll chat ──
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [chatHistory]);
-
-    // ────────────────────── CHAT TAB HANDLERS ────────────────────────────────
 
     const sendChatMessage = async (text) => {
         const trimmed = (text || '').trim();
@@ -98,15 +97,32 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
 
         return (
             <div key={index} className={`flex items-start gap-2 ${isBot ? '' : 'flex-row-reverse'}`}>
-                <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${isBot ? 'bg-blue-600' : 'bg-indigo-500'}`}>
+                {/* Avatar */}
+                <div
+                    className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{
+                        background: isBot
+                            ? 'linear-gradient(135deg, #C4956A, #8B5E3C)'
+                            : 'linear-gradient(135deg, #8B5E3C, #5C3D20)',
+                    }}
+                >
                     {isBot ? <Bot className="w-4 h-4 text-white" /> : <UserIcon className="w-4 h-4 text-white" />}
                 </div>
+
+                {/* Bubble */}
                 <div className={`max-w-[85%] ${isBot ? 'items-start' : 'items-end'} flex flex-col`}>
-                    <div className={`px-3 py-2 rounded-xl shadow-sm ${
-                        isBot
-                            ? 'bg-white border border-gray-200 text-gray-900 rounded-bl-none'
-                            : 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-br-none'
-                    }`}>
+                    <div
+                        className={`px-3 py-2 rounded-xl shadow-sm ${
+                            isBot
+                                ? 'bg-white border text-gray-900 rounded-bl-none'
+                                : 'text-white rounded-br-none'
+                        }`}
+                        style={
+                            isBot
+                                ? { borderColor: '#DDB896' }
+                                : { background: 'linear-gradient(135deg, #C4956A, #8B5E3C)' }
+                        }
+                    >
                         {lines.map((line, i) => {
                             const boldMatch = line.match(/^\*\*(.+)\*\*$/);
                             if (boldMatch) return <p key={i} className="text-xs font-bold mb-0.5">{boldMatch[1]}</p>;
@@ -120,8 +136,6 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
         );
     };
 
-    // ────────────────────── SUBMIT TAB HANDLERS (original logic) ──────────────
-
     const analyzeText = (text) => {
         if (!text || text.length < 10) return;
         setIsAnalyzing(true);
@@ -131,16 +145,16 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
             setIsAnalyzing(false);
             if (analysis.detectedCategory && analysis.detectedCategory !== 'other') {
                 const categoryNames = {
-                    family: language === 'ta' ? 'குடும்ப சட்டம்' : 'Family Law',
-                    property: language === 'ta' ? 'சொத்து சట்டம்' : 'Property Law',
+                    family:   language === 'ta' ? 'குடும்ப சட்டம்' : 'Family Law',
+                    property: language === 'ta' ? 'சொத்து சட்டம்' : 'Property Law',
                     criminal: language === 'ta' ? 'குற்றவியல் சட்டம்' : 'Criminal Law',
                     business: language === 'ta' ? 'வணிக சட்டம்' : 'Business Law',
-                    civil: language === 'ta' ? 'சிவில் சட்டம்' : 'Civil Law',
-                    labor: language === 'ta' ? 'தொழிலாள் சட்டம்' : 'Labor Law',
-                    consumer: language === 'ta' ? 'நுகர்வור் சட்டம்' : 'Consumer Law',
+                    civil:    language === 'ta' ? 'சிவில் சட்டம்' : 'Civil Law',
+                    labor:    language === 'ta' ? 'தொழிலாள் சட்டம்' : 'Labor Law',
+                    consumer: language === 'ta' ? 'நுகர்வோர் சட்டம்' : 'Consumer Law',
                 };
                 const message = language === 'ta'
-                    ? `இதி ${categoryNames[analysis.detectedCategory]} தொடர்பான பிரச்சினை என்று தெரிகிறது`
+                    ? `இது ${categoryNames[analysis.detectedCategory]} தொடர்பான பிரச்சினை என்று தெரிகிறது`
                     : `This appears to be a ${categoryNames[analysis.detectedCategory]} issue`;
                 speak(message);
             }
@@ -152,7 +166,7 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
             stopListening();
         } else {
             startListening();
-            speak(language === 'ta' ? 'உங்கள் சट்ட பிரச்சினையை கூறுங்கள்' : 'Please describe your legal issue');
+            speak(language === 'ta' ? 'உங்கள் சட்ட பிரச்சினையை கூறுங்கள்' : 'Please describe your legal issue');
         }
     };
 
@@ -185,24 +199,26 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
         changeLanguage(language === 'en' ? 'ta' : 'en');
     };
 
-    // ── Don't render if closed ──
     if (!isOpen) return null;
 
-    // ── Labels ──
     const caseTypeLabels = {
         en: { family:'Family Law', property:'Property Law', criminal:'Criminal Law', business:'Business Law', civil:'Civil Law', labor:'Labor Law', consumer:'Consumer Law', other:'Other' },
-        ta: { family:'குடும்ப சட்டம்', property:'சொத்து சட்டம்', criminal:'குற்றவியல் சட்டம்', business:'வணிக சட்டம்', civil:'சிவில் சட்டம்', labor:'தொழிலாள் சட்டம்', consumer:'நுகர்வור் சட்டம்', other:'மற்றவை' },
+        ta: { family:'குடும்ப சட்டம்', property:'சொத்து சட்டம்', criminal:'குற்றவியல் சட்டம்', business:'வணிக சட்டம்', civil:'சிவில் சட்டம்', labor:'தொழிலாள் சட்டம்', consumer:'நுகர்வோர் சட்டம்', other:'மற்றவை' },
     };
     const priorityLabels = {
         en: { high: 'High Priority', normal: 'Normal Priority', low: 'Low Priority' },
-        ta: { high: 'அதிக முன்னுரிமை', normal: 'சாதארண முன்னுரிமை', low: 'குறைந்த முன்னுரிமை' },
+        ta: { high: 'அதிக முன்னுரிமை', normal: 'சாதாரண முன்னுரிமை', low: 'குறைந்த முன்னுரிமை' },
     };
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
-                {/* ── Header ── */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-5 flex items-center justify-between flex-shrink-0">
+
+                {/* ── Header (brown gradient replaces blue) ── */}
+                <div
+                    className="p-5 flex items-center justify-between flex-shrink-0"
+                    style={{ background: 'linear-gradient(135deg, #C4956A, #8B5E3C)' }}
+                >
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                             <Volume2 className="w-5 h-5 text-white" />
@@ -211,13 +227,17 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                             <h2 className="text-xl font-bold text-white">
                                 {language === 'ta' ? 'குரல் உதவி' : 'Voice Assistant'}
                             </h2>
-                            <p className="text-xs text-blue-100">
+                            <p className="text-xs text-white/80">
                                 {language === 'ta' ? 'உங்கள் சட்ட பிரச்சினையை விவரிக்கவும்' : 'Describe your legal issue'}
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-1">
-                        <button onClick={handleLanguageSwitch} className="p-2 hover:bg-white/20 rounded-full transition-colors" title={language === 'ta' ? 'ஆங்கிலம்' : 'தமிழ்'}>
+                        <button
+                            onClick={handleLanguageSwitch}
+                            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                            title={language === 'ta' ? 'ஆங்கிலம்' : 'தமிழ்'}
+                        >
                             <Globe className="w-4 h-4 text-white" />
                         </button>
                         <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
@@ -226,39 +246,53 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                     </div>
                 </div>
 
-                {/* ── Tab switcher ── */}
-                <div className="flex bg-gray-100 p-1 flex-shrink-0">
+                {/* ── Tab switcher (active tab = brown text) ── */}
+                <div className="flex bg-stone-100 p-1 flex-shrink-0">
                     <button
                         onClick={() => setActiveTab('chat')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'chat' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+                        style={
+                            activeTab === 'chat'
+                                ? { background: 'white', color: '#8B5E3C', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                                : { color: '#6b7280' }
+                        }
                     >
-                        💬 {language === 'ta' ? 'சட்ట உரையாடி' : 'Legal Chat'}
+                        💬 {language === 'ta' ? 'சட்ட உரையாடி' : 'Legal Chat'}
                     </button>
                     <button
                         onClick={() => setActiveTab('submit')}
-                        className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === 'submit' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+                        style={
+                            activeTab === 'submit'
+                                ? { background: 'white', color: '#8B5E3C', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                                : { color: '#6b7280' }
+                        }
                     >
                         📋 {language === 'ta' ? 'விஷயம் சமர்ப்பிடுகிறேன்' : 'Submit Issue'}
                     </button>
                 </div>
 
-                {/* ── Body (scrollable) ── */}
+                {/* ── Body ── */}
                 <div className="flex-1 overflow-y-auto">
 
-                    {/* ════════════ CHAT TAB ════════════ */}
+                    {/* ════ CHAT TAB ════ */}
                     {activeTab === 'chat' && (
                         <div className="flex flex-col p-4 gap-4" style={{ minHeight: '300px' }}>
+
                             {/* Empty state */}
                             {chatHistory.length === 0 && (
                                 <div className="text-center py-6">
-                                    <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <Bot className="w-7 h-7 text-blue-600" />
+                                    <div
+                                        className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3"
+                                        style={{ background: '#F5EDE3' }}
+                                    >
+                                        <Bot className="w-7 h-7" style={{ color: '#C4956A' }} />
                                     </div>
                                     <p className="text-sm font-semibold text-gray-700">
                                         {language === 'ta' ? 'ஒரு சட்ட கேள்வி கேளுங்கள்' : 'Ask a legal question'}
                                     </p>
                                     <p className="text-xs text-gray-400 mt-1">
-                                        {language === 'ta' ? 'உங்கள் குழப்பத்தை தெரிஞ்சுக்குங்க' : 'I\'ll help you understand your situation'}
+                                        {language === 'ta' ? 'உங்கள் குழப்பத்தை தெரிஞ்சுக்குங்க' : "I'll help you understand your situation"}
                                     </p>
                                 </div>
                             )}
@@ -270,14 +304,20 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                                 {/* Typing indicator */}
                                 {isSending && (
                                     <div className="flex items-start gap-2">
-                                        <div className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center">
+                                        <div
+                                            className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                                            style={{ background: 'linear-gradient(135deg, #C4956A, #8B5E3C)' }}
+                                        >
                                             <Bot className="w-4 h-4 text-white" />
                                         </div>
-                                        <div className="bg-white border border-gray-200 rounded-xl rounded-bl-none px-3 py-2 shadow-sm">
+                                        <div
+                                            className="bg-white rounded-xl rounded-bl-none px-3 py-2 shadow-sm border"
+                                            style={{ borderColor: '#DDB896' }}
+                                        >
                                             <div className="flex gap-1">
-                                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                                <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#C4956A', animationDelay: '0ms' }} />
+                                                <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#C4956A', animationDelay: '150ms' }} />
+                                                <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#C4956A', animationDelay: '300ms' }} />
                                             </div>
                                         </div>
                                     </div>
@@ -289,11 +329,16 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                             <div className="flex justify-center">
                                 <button
                                     onClick={handleMicClick}
-                                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                                        isListening
-                                            ? 'bg-red-500 hover:bg-red-600 animate-pulse shadow-lg shadow-red-200'
-                                            : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'
-                                    }`}
+                                    className="w-14 h-14 rounded-full flex items-center justify-center transition-all"
+                                    style={{
+                                        background: isListening
+                                            ? '#ef4444'
+                                            : 'linear-gradient(135deg, #C4956A, #8B5E3C)',
+                                        boxShadow: isListening
+                                            ? '0 8px 24px rgba(239,68,68,0.35)'
+                                            : '0 8px 24px rgba(196,149,106,0.45)',
+                                        animation: isListening ? 'pulse 1.5s infinite' : 'none',
+                                    }}
                                 >
                                     {isListening ? <MicOff className="w-6 h-6 text-white" /> : <Mic className="w-6 h-6 text-white" />}
                                 </button>
@@ -307,12 +352,14 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                                     onChange={(e) => setChatInput(e.target.value)}
                                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleChatSubmit(); } }}
                                     placeholder={language === 'ta' ? 'ஒரு கேள்வி கேளுங்க…' : 'Type a question…'}
-                                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                    className="flex-1 px-3 py-2 bg-stone-50 rounded-xl focus:outline-none focus:ring-2 text-sm border"
+                                    style={{ borderColor: '#DDB896', '--tw-ring-color': '#C4956A' }}
                                 />
                                 <button
                                     type="submit"
                                     disabled={!chatInput.trim() || isSending}
-                                    className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-xl transition-colors"
+                                    className="p-2.5 text-white rounded-xl transition-colors disabled:bg-gray-400"
+                                    style={{ background: 'linear-gradient(135deg, #C4956A, #8B5E3C)' }}
                                 >
                                     {isSending ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 </button>
@@ -320,15 +367,32 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                         </div>
                     )}
 
-                    {/* ════════════ SUBMIT TAB (original UI, unchanged) ════════════ */}
+                    {/* ════ SUBMIT TAB ════ */}
                     {activeTab === 'submit' && (
                         <div className="p-6 space-y-5">
+
                             {/* Input method toggle */}
-                            <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-                                <button onClick={() => setInputMethod('voice')} className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all ${inputMethod === 'voice' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+                            <div className="flex gap-2 bg-stone-100 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setInputMethod('voice')}
+                                    className="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all"
+                                    style={
+                                        inputMethod === 'voice'
+                                            ? { background: 'white', color: '#8B5E3C', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                                            : { color: '#6b7280' }
+                                    }
+                                >
                                     <Mic className="w-4 h-4 inline mr-1" />{language === 'ta' ? 'குரல்' : 'Voice'}
                                 </button>
-                                <button onClick={() => setInputMethod('text')} className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all ${inputMethod === 'text' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+                                <button
+                                    onClick={() => setInputMethod('text')}
+                                    className="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all"
+                                    style={
+                                        inputMethod === 'text'
+                                            ? { background: 'white', color: '#8B5E3C', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                                            : { color: '#6b7280' }
+                                    }
+                                >
                                     {language === 'ta' ? 'உரை' : 'Text'}
                                 </button>
                             </div>
@@ -338,16 +402,23 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                                 <div className="text-center space-y-3">
                                     <button
                                         onClick={handleMicClick}
-                                        className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center transition-all ${isListening ? 'bg-red-500 hover:bg-red-600 animate-pulse shadow-lg shadow-red-200' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200'}`}
+                                        className="w-20 h-20 rounded-full mx-auto flex items-center justify-center transition-all"
+                                        style={{
+                                            background: isListening ? '#ef4444' : 'linear-gradient(135deg, #C4956A, #8B5E3C)',
+                                            boxShadow: isListening
+                                                ? '0 8px 24px rgba(239,68,68,0.35)'
+                                                : '0 8px 24px rgba(196,149,106,0.45)',
+                                            animation: isListening ? 'pulse 1.5s infinite' : 'none',
+                                        }}
                                     >
                                         {isListening ? <MicOff className="w-9 h-9 text-white" /> : <Mic className="w-9 h-9 text-white" />}
                                     </button>
                                     <p className="text-xs font-medium text-gray-600">
                                         {isListening
                                             ? (language === 'ta' ? 'கேட்கிறது...' : 'Listening...')
-                                            : (language === 'ta' ? 'மைக்ரோபோனை 클릭 செய்యுங்கள்' : 'Click microphone to speak')}
+                                            : (language === 'ta' ? 'மைக்ரோபோனை க்ளிக் செய்யுங்கள்' : 'Click microphone to speak')}
                                     </p>
-                                    <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
+                                    <div className="inline-flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-full">
                                         <span className="text-lg">{languages[language]?.flag}</span>
                                         <span className="text-xs font-medium text-gray-700">{languages[language]?.name}</span>
                                     </div>
@@ -362,37 +433,42 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
                                 <textarea
                                     value={issueDescription}
                                     onChange={(e) => { setIssueDescription(e.target.value); setTranscript(e.target.value); analyzeText(e.target.value); }}
-                                    placeholder={language === 'ta' ? 'உங்கள் சట்ட பிரச்சினையை இங்கே விவரிக்கவும்...' : 'Describe your legal issue here...'}
-                                    className="w-full min-h-28 p-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                                    placeholder={language === 'ta' ? 'உங்கள் சட்ட பிரச்சினையை இங்கே விவரிக்கவும்...' : 'Describe your legal issue here...'}
+                                    className="w-full min-h-28 p-3 bg-stone-50 border-2 rounded-xl focus:outline-none focus:ring-2 resize-none text-sm"
+                                    style={{ borderColor: '#DDB896', '--tw-ring-color': '#C4956A' }}
                                     rows={4}
                                     readOnly={inputMethod === 'voice' && isListening}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                    {issueDescription.length} {language === 'ta' ? 'எழுத்துக்கள்' : 'characters'} ({language === 'ta' ? 'குறைந்தப்பட்ட 20' : 'minimum 20'})
+                                    {issueDescription.length} {language === 'ta' ? 'எழுத்துக்கள்' : 'characters'} ({language === 'ta' ? 'குறைந்தபட்சம் 20' : 'minimum 20'})
                                 </p>
                             </div>
 
-                            {/* NLP Analysis */}
+                            {/* Analyzing */}
                             {isAnalyzing && (
-                                <div className="flex items-center justify-center gap-2 text-blue-600">
+                                <div className="flex items-center justify-center gap-2" style={{ color: '#C4956A' }}>
                                     <Loader className="w-4 h-4 animate-spin" />
                                     <span className="text-xs font-medium">{language === 'ta' ? 'பகுப்பாய்வு...' : 'Analyzing...'}</span>
                                 </div>
                             )}
 
+                            {/* NLP Analysis */}
                             {nlpAnalysis && !isAnalyzing && (
-                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
-                                    <h3 className="font-semibold text-blue-900 text-sm flex items-center gap-1">
+                                <div
+                                    className="border rounded-xl p-4 space-y-2"
+                                    style={{ background: '#FDF6EE', borderColor: '#DDB896' }}
+                                >
+                                    <h3 className="font-semibold text-sm flex items-center gap-1" style={{ color: '#6B3F1E' }}>
                                         🤖 {language === 'ta' ? 'AI பகுப்பாய்வு' : 'AI Analysis'}
                                     </h3>
                                     <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="bg-white rounded-lg p-2">
+                                        <div className="bg-white rounded-lg p-2" style={{ border: '1px solid #DDB896' }}>
                                             <p className="text-gray-500 mb-0.5">{language === 'ta' ? 'வழக்க வகை' : 'Case Type'}</p>
                                             <p className="font-semibold text-gray-900">
                                                 {caseTypeLabels[language]?.[nlpAnalysis.detectedCategory] || caseTypeLabels[language]?.other}
                                             </p>
                                         </div>
-                                        <div className="bg-white rounded-lg p-2">
+                                        <div className="bg-white rounded-lg p-2" style={{ border: '1px solid #DDB896' }}>
                                             <p className="text-gray-500 mb-0.5">{language === 'ta' ? 'முன்னுரிமை' : 'Priority'}</p>
                                             <p className="font-semibold text-gray-900">
                                                 {priorityLabels[language]?.[nlpAnalysis.urgencyLevel]}
@@ -417,13 +493,20 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
 
                             {/* Action buttons */}
                             <div className="flex gap-3 pt-2">
-                                <button onClick={onClose} className="flex-1 py-3 border-2 border-gray-200 rounded-xl font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <button
+                                    onClick={onClose}
+                                    className="flex-1 py-3 border-2 border-stone-200 rounded-xl font-semibold text-sm text-gray-700 hover:bg-stone-50 transition-colors"
+                                >
                                     {language === 'ta' ? 'ரத்து செய்' : 'Cancel'}
                                 </button>
                                 <button
                                     onClick={handleSubmitIssue}
                                     disabled={!issueDescription || issueDescription.length < 20}
-                                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-lg shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="flex-1 py-3 text-white rounded-xl font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #C4956A, #8B5E3C)',
+                                        boxShadow: '0 8px 24px rgba(196,149,106,0.4)',
+                                    }}
                                 >
                                     <Send className="w-4 h-4" />
                                     {language === 'ta' ? 'சமர்ப்பிக்கவும்' : 'Submit Issue'}

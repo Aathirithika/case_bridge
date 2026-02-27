@@ -36,7 +36,7 @@ const caseSchema = new mongoose.Schema({
     },
     priority: {
         type: String,
-        enum: ['low', 'medium', 'high'],
+        enum: ['low', 'normal','medium', 'high'],
         default: 'medium',
     },
     documents: [{
