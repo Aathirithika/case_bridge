@@ -10,6 +10,7 @@ import caseRoutes from './routes/cases.js';
 import lawyerRoutes from './routes/lawyers.js';
 import voiceRoutes from './routes/voice.js';
 import messageRoutes from './routes/messages.js';
+import ipcRoutes from './routes/ipc.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api/cases', caseRoutes);
 app.use('/api/lawyers', lawyerRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/ipc', ipcRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

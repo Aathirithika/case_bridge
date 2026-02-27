@@ -45,10 +45,17 @@ export default function ClientDashboard() {
     const [uploadedFiles, setUploadedFiles] = useState([]);
     const [showChat, setShowChat] = useState(false);
     const [selectedCaseForChat, setSelectedCaseForChat] = useState(null);
-    const [showQuickChatModal, setShowQuickChatModal] = useState(false);
-    const [quickChatLawyer, setQuickChatLawyer] = useState(null);
+    const [showQuickChatLawyer, setShowQuickChatLawyer] = useState(null);
     const [showWelcome, setShowWelcome] = useState(true);
     const [activeTab, setActiveTab] = useState('all'); // all, active, pending, closed
+    const [dashboardTab, setDashboardTab] = useState('home'); // home, consultations, profile
+    const [profileData, setProfileData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        location: ''
+    });
+    const [updatingProfile, setUpdatingProfile] = useState(false);
     const caseTypeMapping = {
         'family': 'Family Law',
         'property': 'Property Law',
@@ -90,6 +97,12 @@ export default function ClientDashboard() {
             });
 
             setUser(response.data);
+            setProfileData({
+                name: response.data.name,
+                email: response.data.email,
+                phone: response.data.phone || '',
+                location: response.data.location || ''
+            });
 
             if (response.data.role !== 'client') {
                 navigate('/lawyer-dashboard');
@@ -104,28 +117,37 @@ export default function ClientDashboard() {
         }
     };
 
-    const fetchLawyers = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await api.get('/api/lawyers', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setLawyers(response.data);
-            setRecommendedLawyers(response.data.slice(0, 3));
-        } catch (error) {
-            console.error('Error fetching lawyers:', error);
-        }
-    };
-
     const fetchMyCases = async () => {
         try {
             const token = localStorage.getItem('token');
             const response = await api.get('/api/cases', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setCases(response.data.cases);
+            const myCases = response.data.cases;
+            setCases(myCases);
+
+            // Fetch recommendations separately from the new endpoint, now case-aware
+            const latestCase = myCases[0];
+            const recResponse = await api.get('/api/lawyers/recommendations', {
+                params: latestCase ? { caseId: latestCase._id } : {},
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setRecommendedLawyers(recResponse.data);
         } catch (error) {
             console.error('Error fetching cases:', error);
+        }
+    };
+
+    const fetchLawyers = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            // Fetch all lawyers for general use
+            const response = await api.get('/api/lawyers', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setLawyers(response.data);
+        } catch (error) {
+            console.error('Error fetching lawyers:', error);
         }
     };
 
@@ -216,6 +238,24 @@ export default function ClientDashboard() {
 
     const removeFile = (index) => {
         setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        setUpdatingProfile(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await api.put('/api/auth/profile', profileData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUser(response.data);
+            alert('Profile updated successfully!');
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert(error.response?.data?.message || 'Failed to update profile.');
+        } finally {
+            setUpdatingProfile(false);
+        }
     };
 
     const handleSubmitIssue = async (e) => {
@@ -379,189 +419,256 @@ export default function ClientDashboard() {
         <div className="min-h-screen bg-[#faf7f0]">
             <Navbar user={user} onLogout={handleLogout} />
 
+            {/* Dashboard Sidebar/Tabs */}
+            <div className="bg-white border-b border-amber-100 flex items-center px-6 overflow-x-auto no-scrollbar">
+                <button
+                    onClick={() => setDashboardTab('home')}
+                    className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'home' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
+                >
+                    Dashboard Home
+                </button>
+                <button
+                    onClick={() => setDashboardTab('consultations')}
+                    className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'consultations' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
+                >
+                    My Consultations
+                </button>
+                <button
+                    onClick={() => setDashboardTab('profile')}
+                    className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'profile' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
+                >
+                    Profile Settings
+                </button>
+            </div>
+
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-6 py-8">
-                {/* Hero Section */}
-                <div className="relative mb-12 -mx-6 md:-mx-12 lg:-mx-20">
-                    <div className="bg-gradient-to-br from-[#4a3728] to-[#2d2926] min-h-[400px] flex flex-col items-center justify-center text-center px-6 py-20 overflow-hidden relative">
-                        {/* Decorative background elements */}
-                        <div className="absolute top-0 left-0 w-full h-full opacity-5">
-                            <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-white rounded-full blur-[120px]"></div>
-                            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#faf7f0] rounded-full blur-[150px]"></div>
-                        </div>
-
-                        <div className="relative z-10 max-w-4xl mx-auto">
-                            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#faf7f0] mb-6 leading-[1.1] tracking-tight">
-                                Free Legal Advice Online<br />
-                                <span className="text-[#8d6e63]">From Top Rated Lawyers</span>
-                            </h2>
-                            <p className="text-lg md:text-xl text-[#faf7f0]/80 mb-10 font-medium">
-                                Choose from over 15,000 lawyers across 1000+ cities in India.<br />
-                                <span className="text-[#faf7f0]/50 text-sm mt-4 block italic font-serif">"Your Secure Bridge to Justice — CaseBridge"</span>
-                            </p>
-
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <button
-                                    onClick={() => setShowHireModal(true)}
-                                    className="w-full sm:w-auto px-10 py-4 bg-[#1a1a1a] text-[#faf7f0] border border-black rounded-md font-extrabold text-sm uppercase tracking-[0.15em] hover:bg-black transition-all shadow-2xl active:scale-95"
-                                >
-                                    Talk to a Lawyer
-                                </button>
-                                <button
-                                    onClick={() => setShowVoiceAssistant(true)}
-                                    className="w-full sm:w-auto px-10 py-4 bg-transparent border-2 border-[#faf7f0]/30 text-[#faf7f0] rounded-md font-extrabold text-sm uppercase tracking-[0.15em] hover:bg-white/5 transition-all active:scale-95"
-                                >
-                                    Ask a Free Question
-                                </button>
-                            </div>
-
-                            <div className="mt-10 flex items-center justify-center gap-3">
-                                <div className="flex -space-x-2">
-                                    {[1, 2, 3].map(i => (
-                                        <div key={i} className="w-8 h-8 rounded-full border-2 border-[#4a3728] bg-gray-200 overflow-hidden shadow-sm">
-                                            <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="lawyer" />
-                                        </div>
-                                    ))}
+                {dashboardTab === 'home' && (
+                    <>
+                        {/* Hero Section */}
+                        <div className="relative mb-12 -mx-6 md:-mx-12 lg:-mx-20">
+                            <div className="bg-gradient-to-br from-[#4a3728] to-[#2d2926] min-h-[400px] flex flex-col items-center justify-center text-center px-6 py-20 overflow-hidden relative">
+                                {/* Decorative background elements */}
+                                <div className="absolute top-0 left-0 w-full h-full opacity-5">
+                                    <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-white rounded-full blur-[120px]"></div>
+                                    <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#faf7f0] rounded-full blur-[150px]"></div>
                                 </div>
-                                <span className="text-[10px] text-[#faf7f0]/60 font-black uppercase tracking-widest">448+ Advocates Online</span>
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+
+                                <div className="relative z-10 max-w-4xl mx-auto">
+                                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#faf7f0] mb-6 leading-[1.1] tracking-tight">
+                                        Free Legal Advice Online<br />
+                                        <span className="text-[#8d6e63]">From Top Rated Lawyers</span>
+                                    </h2>
+                                    <p className="text-lg md:text-xl text-[#faf7f0]/80 mb-10 font-medium">
+                                        Choose from over 15,000 lawyers across 1000+ cities in India.<br />
+                                        <span className="text-[#faf7f0]/50 text-sm mt-4 block italic font-serif">"Your Secure Bridge to Justice — CaseBridge"</span>
+                                    </p>
+
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                        <button
+                                            onClick={() => setShowHireModal(true)}
+                                            className="w-full sm:w-auto px-10 py-4 bg-[#1a1a1a] text-[#faf7f0] border border-black rounded-md font-extrabold text-sm uppercase tracking-[0.15em] hover:bg-black transition-all shadow-2xl active:scale-95"
+                                        >
+                                            Talk to a Lawyer
+                                        </button>
+                                        <button
+                                            onClick={() => setShowVoiceAssistant(true)}
+                                            className="w-full sm:w-auto px-10 py-4 bg-transparent border-2 border-[#faf7f0]/30 text-[#faf7f0] rounded-md font-extrabold text-sm uppercase tracking-[0.15em] hover:bg-white/5 transition-all active:scale-95"
+                                        >
+                                            Ask a Free Question
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Integrated Search Console */}
+                            <div className="max-w-5xl mx-auto px-6 -mt-10 relative z-20">
+                                <SearchConsole
+                                    searchTerm={searchTerm}
+                                    setSearchTerm={setSearchTerm}
+                                    onSearch={(query) => {
+                                        const params = new URLSearchParams();
+                                        if (searchTerm) params.append('search', searchTerm);
+                                        if (query?.specialization) params.append('specialization', query.specialization);
+                                        if (query?.location) params.append('location', query.location);
+                                        navigate(`/find-lawyer?${params.toString()}`);
+                                    }}
+                                />
                             </div>
                         </div>
-                    </div>
 
-                    {/* Integrated Search Console */}
-                    <div className="max-w-5xl mx-auto px-6 -mt-10 relative z-20">
-                        <SearchConsole
-                            searchTerm={searchTerm}
-                            setSearchTerm={setSearchTerm}
-                            onSearch={() => alert("Search initiated")}
+                        {/* Integrated Lawyer Showcase */}
+                        <LawyerShowcase
+                            lawyers={recommendedLawyers}
+                            onConsult={handleQuickChat}
+                            onViewProfile={(id) => navigate(`/lawyer/${id}`)}
                         />
-                    </div>
-                </div>
+                    </>
+                )}
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <button
-                        onClick={() => setActiveTab(activeTab === 'active' ? 'all' : 'active')}
-                        className={`bg-white rounded-lg p-6 shadow-sm border transition-all text-left flex items-center justify-between group ${activeTab === 'active' ? 'border-[#4a3728] ring-1 ring-[#4a3728]' : 'border-[#8d6e63]/10 hover:border-[#8d6e63]/30'}`}
-                    >
+                {dashboardTab === 'consultations' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div>
-                            <p className="text-[11px] font-black text-[#8d6e63] uppercase tracking-widest mb-1">Active Cases</p>
-                            <p className="text-3xl font-black text-[#1a1a1a]">{cases.filter(c => c.status === 'under_review' || c.status === 'in_progress').length}</p>
+                            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">My Consultations</h2>
+                            <p className="text-[#8d6e63] font-medium italic mt-1">Track and manage your legal conversations and cases.</p>
                         </div>
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeTab === 'active' ? 'bg-[#faf7f0] text-[#4a3728]' : 'bg-gray-50 text-gray-400'}`}>
-                            <FileText className="w-6 h-6" />
-                        </div>
-                    </button>
 
-                    <button
-                        onClick={() => setActiveTab(activeTab === 'pending' ? 'all' : 'pending')}
-                        className={`bg-white rounded-lg p-6 shadow-sm border transition-all text-left flex items-center justify-between group ${activeTab === 'pending' ? 'border-[#8d6e63] ring-1 ring-[#8d6e63]' : 'border-[#8d6e63]/10 hover:border-[#8d6e63]/30'}`}
-                    >
-                        <div>
-                            <p className="text-[11px] font-black text-[#8d6e63] uppercase tracking-widest mb-1">Pending Review</p>
-                            <p className="text-3xl font-black text-[#1a1a1a]">{cases.filter(c => c.status === 'submitted').length}</p>
-                        </div>
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeTab === 'pending' ? 'bg-[#fdfbf7] text-[#8d6e63]' : 'bg-gray-50 text-gray-400'}`}>
-                            <Clock className="w-6 h-6" />
-                        </div>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab(activeTab === 'closed' ? 'all' : 'closed')}
-                        className={`bg-white rounded-lg p-6 shadow-sm border transition-all text-left flex items-center justify-between group ${activeTab === 'closed' ? 'border-[#1a1a1a] ring-1 ring-[#1a1a1a]' : 'border-[#8d6e63]/10 hover:border-[#8d6e63]/30'}`}
-                    >
-                        <div>
-                            <p className="text-[11px] font-black text-[#8d6e63] uppercase tracking-widest mb-1">Resolved</p>
-                            <p className="text-3xl font-black text-[#1a1a1a]">{cases.filter(c => c.status === 'closed').length}</p>
-                        </div>
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeTab === 'closed' ? 'bg-gray-50 text-[#1a1a1a]' : 'bg-gray-50 text-gray-400'}`}>
-                            <CheckCircle className="w-6 h-6" />
-                        </div>
-                    </button>
-                </div>
-
-                {/* Integrated Lawyer Showcase */}
-                <LawyerShowcase
-                    lawyers={recommendedLawyers}
-                    onConsult={handleQuickChat}
-                    onViewProfile={(id) => navigate(`/lawyer/${id}`)}
-                />
-
-
-                {/* My Cases */}
-                <div className="mb-20">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold text-[#1a1a1a]">
-                            My Case History
-                        </h2>
-                        {activeTab !== 'all' && (
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <button
-                                onClick={() => setActiveTab('all')}
-                                className="text-xs font-black text-[#4a3728] uppercase tracking-widest hover:text-black transition-colors"
+                                onClick={() => setActiveTab(activeTab === 'active' ? 'all' : 'active')}
+                                className={`bg-white rounded-lg p-6 shadow-sm border transition-all text-left flex items-center justify-between group ${activeTab === 'active' ? 'border-[#4a3728] ring-1 ring-[#4a3728]' : 'border-[#8d6e63]/10 hover:border-[#8d6e63]/30'}`}
                             >
-                                Reset Filters
+                                <div>
+                                    <p className="text-[11px] font-black text-[#8d6e63] uppercase tracking-widest mb-1">Active</p>
+                                    <p className="text-3xl font-black text-[#1a1a1a]">{cases.filter(c => c.status === 'under_review' || c.status === 'in_progress').length}</p>
+                                </div>
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeTab === 'active' ? 'bg-[#faf7f0] text-[#4a3728]' : 'bg-gray-50 text-gray-400'}`}>
+                                    <FileText className="w-6 h-6" />
+                                </div>
                             </button>
+
+                            <button
+                                onClick={() => setActiveTab(activeTab === 'pending' ? 'all' : 'pending')}
+                                className={`bg-white rounded-lg p-6 shadow-sm border transition-all text-left flex items-center justify-between group ${activeTab === 'pending' ? 'border-[#8d6e63] ring-1 ring-[#8d6e63]' : 'border-[#8d6e63]/10 hover:border-[#8d6e63]/30'}`}
+                            >
+                                <div>
+                                    <p className="text-[11px] font-black text-[#8d6e63] uppercase tracking-widest mb-1">Pending</p>
+                                    <p className="text-3xl font-black text-[#1a1a1a]">{cases.filter(c => c.status === 'submitted').length}</p>
+                                </div>
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeTab === 'pending' ? 'bg-[#fdfbf7] text-[#8d6e63]' : 'bg-gray-50 text-gray-400'}`}>
+                                    <Clock className="w-6 h-6" />
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => setActiveTab(activeTab === 'closed' ? 'all' : 'closed')}
+                                className={`bg-white rounded-lg p-6 shadow-sm border transition-all text-left flex items-center justify-between group ${activeTab === 'closed' ? 'border-[#1a1a1a] ring-1 ring-[#1a1a1a]' : 'border-[#8d6e63]/10 hover:border-[#8d6e63]/30'}`}
+                            >
+                                <div>
+                                    <p className="text-[11px] font-black text-[#8d6e63] uppercase tracking-widest mb-1">Resolved</p>
+                                    <p className="text-3xl font-black text-[#1a1a1a]">{cases.filter(c => c.status === 'closed').length}</p>
+                                </div>
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${activeTab === 'closed' ? 'bg-gray-50 text-[#1a1a1a]' : 'bg-gray-50 text-gray-400'}`}>
+                                    <CheckCircle className="w-6 h-6" />
+                                </div>
+                            </button>
+                        </div>
+
+                        {/* Cases List */}
+                        {getFilteredCases().length > 0 ? (
+                            <div className="bg-white rounded-md shadow-sm border border-[#8d6e63]/20 divide-y divide-[#8d6e63]/10 overflow-hidden">
+                                {getFilteredCases().map((c) => (
+                                    <div key={c._id} className="p-6 hover:bg-[#faf7f0]/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <h3 className="font-bold text-[#1a1a1a] text-lg">{c.title}</h3>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${getStatusColor(c.status)}`}>
+                                                    {c.status.replace('_', ' ')}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-gray-500 font-medium">
+                                                Advocate: <span className="font-bold text-[#8d6e63]">Adv. {c.lawyer?.name}</span> • Ref: {c.caseNumber}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            {c.priority === 'high' && (
+                                                <span className="px-3 py-1 bg-red-50 text-red-600 text-[11px] font-bold uppercase rounded-md tracking-wider border border-red-100">
+                                                    High Priority
+                                                </span>
+                                            )}
+                                            {c.lawyer && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedCaseForChat(c);
+                                                        setShowChat(true);
+                                                    }}
+                                                    className="px-6 py-2.5 bg-[#4a3728] hover:bg-[#1a1a1a] text-[#faf7f0] rounded-md text-xs font-black uppercase tracking-widest transition-all shadow-md flex items-center gap-2"
+                                                >
+                                                    <MessageCircle className="w-3.5 h-3.5" />
+                                                    Chat
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white/50 rounded-md p-16 text-center border border-dashed border-[#8d6e63]/30">
+                                <FileText className="w-12 h-12 text-[#8d6e63]/20 mx-auto mb-4" />
+                                <h3 className="text-lg font-bold text-[#1a1a1a]">No consultations found</h3>
+                                <p className="text-[#8d6e63] text-sm italic font-medium">Start a new request from the home tab.</p>
+                            </div>
                         )}
                     </div>
-                    {getFilteredCases().length > 0 ? (
-                        <div className="bg-white rounded-md shadow-sm border border-[#8d6e63]/20 divide-y divide-[#8d6e63]/10 overflow-hidden">
-                            {getFilteredCases().map((c) => (
-                                <div key={c._id} className="p-6 hover:bg-[#faf7f0]/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <h3 className="font-bold text-[#1a1a1a] text-lg">{c.title}</h3>
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${getStatusColor(c.status)}`}>
-                                                {c.status.replace('_', ' ')}
-                                            </span>
+                )}
+
+                {dashboardTab === 'profile' && (
+                    <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Profile Settings</h2>
+                            <p className="text-[#8d6e63] font-medium italic mt-1">Manage your account information and preferences.</p>
+                        </div>
+
+                        <div className="bg-white rounded-xl border border-[#8d6e63]/10 shadow-sm overflow-hidden">
+                            <div className="p-8">
+                                <form onSubmit={handleUpdateProfile} className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Full Name</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 py-3 bg-[#faf7f0]/50 border border-[#8d6e63]/20 rounded-lg focus:border-[#4a3728] outline-none transition-all font-medium"
+                                                value={profileData.name}
+                                                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                                            />
                                         </div>
-                                        <p className="text-sm text-gray-500 font-medium">
-                                            Handling Advocate: <span className="font-bold text-[#8d6e63]">Advocate {c.lawyer?.name}</span> • Ref: {c.caseNumber}
-                                        </p>
+                                        <div>
+                                            <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Email Address</label>
+                                            <input
+                                                type="email"
+                                                disabled
+                                                className="w-full px-4 py-3 bg-gray-50 border border-[#8d6e63]/10 rounded-lg text-stone-400 cursor-not-allowed font-medium"
+                                                value={profileData.email}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Phone Number</label>
+                                            <input
+                                                type="tel"
+                                                className="w-full px-4 py-3 bg-[#faf7f0]/50 border border-[#8d6e63]/20 rounded-lg focus:border-[#4a3728] outline-none transition-all font-medium"
+                                                value={profileData.phone}
+                                                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                                                placeholder="e.g. +91 98765 43210"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Location</label>
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 py-3 bg-[#faf7f0]/50 border border-[#8d6e63]/20 rounded-lg focus:border-[#4a3728] outline-none transition-all font-medium"
+                                                value={profileData.location}
+                                                onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                                                placeholder="e.g. Chennai, Tamil Nadu"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        {c.priority === 'high' && (
-                                            <span className="px-3 py-1 bg-red-50 text-red-600 text-[11px] font-bold uppercase rounded-md tracking-wider border border-red-100">
-                                                High Priority
-                                            </span>
-                                        )}
-                                        {c.lawyer && (
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedCaseForChat(c);
-                                                    setShowChat(true);
-                                                }}
-                                                className="px-6 py-2.5 bg-[#4a3728] hover:bg-[#1a1a1a] text-[#faf7f0] rounded-md text-xs font-black uppercase tracking-widest transition-all shadow-md flex items-center gap-2 active:scale-95"
-                                            >
-                                                <MessageCircle className="w-3.5 h-3.5" />
-                                                Open Chat
-                                            </button>
-                                        )}
+
+                                    <div className="pt-6 border-t border-[#faf7f0]">
+                                        <button
+                                            type="submit"
+                                            disabled={updatingProfile}
+                                            className="px-10 py-4 bg-[#4a3728] text-[#faf7f0] rounded-md font-black text-xs uppercase tracking-widest hover:bg-[#1a1a1a] transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                                        >
+                                            {updatingProfile ? 'Saving Changes...' : 'Update Profile'}
+                                        </button>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="bg-white/50 rounded-md p-16 text-center border border-dashed border-[#8d6e63]/30">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                                <FileText className="w-8 h-8 text-[#8d6e63]/20" />
+                                </form>
                             </div>
-                            <h3 className="text-lg font-bold text-[#1a1a1a] mb-1">
-                                {activeTab === 'all' ? "No records found" : `No ${activeTab} cases`}
-                            </h3>
-                            <p className="text-[#8d6e63] text-sm mb-8 max-w-xs mx-auto font-medium italic">
-                                Start a consultation today to begin your legal journey with professional assistance.
-                            </p>
-                            <button
-                                onClick={() => setShowVoiceAssistant(true)}
-                                className="px-8 py-3 bg-[#4a3728] text-[#faf7f0] rounded-md font-black text-xs uppercase tracking-widest hover:bg-[#1a1a1a] transition-colors shadow-lg active:scale-95"
-                            >
-                                Start Consultation
-                            </button>
                         </div>
-                    )}
-                </div>
-            </main >
+                    </div>
+                )}
+            </main>
 
             {/* Floating Voice Assistant Button */}
             <button

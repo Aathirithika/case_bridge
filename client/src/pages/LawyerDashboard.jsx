@@ -16,7 +16,8 @@ import {
     File,
     ChevronRight,
     Star,
-    MessageCircle
+    MessageCircle,
+    Phone
 } from 'lucide-react';
 import api from '../utils/axiosConfig';
 import ChatMessaging from '../components/ChatMessaging';
@@ -38,7 +39,16 @@ export default function LawyerDashboard() {
     const [selectedCase, setSelectedCase] = useState(null);
     const [remarkText, setRemarkText] = useState('');
     const [loadingRemark, setLoadingRemark] = useState(false);
-    const [activeTab, setActiveTab] = useState('pending'); // pending, active, all
+    const [dashboardTab, setDashboardTab] = useState('home'); // home, profile
+    const [profileData, setProfileData] = useState({
+        name: '',
+        phone: '',
+        location: '',
+        yearsOfExperience: '',
+        specializations: '',
+        profilePicture: ''
+    });
+    const [updatingProfile, setUpdatingProfile] = useState(false);
     const [showChat, setShowChat] = useState(false);
     const [selectedCaseForChat, setSelectedCaseForChat] = useState(null);
 
@@ -65,6 +75,14 @@ export default function LawyerDashboard() {
             });
 
             setUser(response.data);
+            setProfileData({
+                name: response.data.name,
+                phone: response.data.phone || '',
+                location: response.data.location || '',
+                yearsOfExperience: response.data.yearsOfExperience || '',
+                specializations: response.data.specializations?.join(', ') || '',
+                profilePicture: response.data.profilePicture || ''
+            });
 
             if (response.data.role !== 'lawyer') {
                 navigate('/client-dashboard');
@@ -117,6 +135,28 @@ export default function LawyerDashboard() {
         } catch (error) {
             console.error('Error updating case status:', error);
             alert('Failed to update case status');
+        }
+    };
+
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        setUpdatingProfile(true);
+        try {
+            const token = localStorage.getItem('token');
+            const payload = {
+                ...profileData,
+                specializations: profileData.specializations.split(',').map(s => s.trim()).filter(s => s)
+            };
+            const response = await api.put('/api/auth/profile', payload, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUser(response.data);
+            alert('Profile updated successfully!');
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            alert(error.response?.data?.message || 'Failed to update profile.');
+        } finally {
+            setUpdatingProfile(false);
         }
     };
 
@@ -208,182 +248,306 @@ export default function LawyerDashboard() {
         <div className="min-h-screen bg-[#faf7f0]">
             <Navbar user={user} onLogout={handleLogout} />
 
+            {/* Dashboard Sub-navigation */}
+            <div className="bg-white border-b border-amber-100 flex items-center px-6 overflow-x-auto no-scrollbar">
+                <button
+                    onClick={() => setDashboardTab('home')}
+                    className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'home' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
+                >
+                    Case Management
+                </button>
+                <button
+                    onClick={() => setDashboardTab('profile')}
+                    className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'profile' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
+                >
+                    Professional Profile
+                </button>
+            </div>
+
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-6 py-8">
-                {/* Welcome Banner */}
-                <div className="mb-8 bg-gradient-to-r from-[#4a3728] to-[#2d2926] rounded-3xl p-8 text-[#faf7f0] shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-                    <h2 className="text-3xl font-black mb-2 relative z-10 tracking-tight">Welcome back, Advocate {user?.name}!</h2>
-                    <p className="text-[#faf7f0]/80 relative z-10 font-medium italic">
-                        {statistics.pendingRequests > 0
-                            ? `You have ${statistics.pendingRequests} new case ${statistics.pendingRequests === 1 ? 'request' : 'requests'} waiting for your review.`
-                            : "All caught up! No pending requests at the moment."}
-                    </p>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-stone-500">Pending</span>
-                            <AlertCircle className="w-5 h-5 text-orange-500" />
-                        </div>
-                        <p className="text-3xl font-bold text-stone-900">{statistics.pendingRequests}</p>
-                        <p className="text-xs text-stone-500 mt-1">New requests</p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-stone-500">Active Cases</span>
-                            <Briefcase className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <p className="text-3xl font-bold text-stone-900">{statistics.activeCases}</p>
-                        <p className="text-xs text-stone-500 mt-1">In progress</p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-stone-500">Clients</span>
-                            <Users className="w-5 h-5 text-stone-600" />
-                        </div>
-                        <p className="text-3xl font-bold text-stone-900">{statistics.totalClients}</p>
-                        <p className="text-xs text-stone-500 mt-1">Total clients</p>
-                    </div>
-
-                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-stone-500">Completed</span>
-                            <CheckCircle className="w-5 h-5 text-green-500" />
-                        </div>
-                        <p className="text-3xl font-bold text-stone-900">{statistics.completedCases}</p>
-                        <p className="text-xs text-stone-500 mt-1">Cases closed</p>
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="mb-6 flex gap-2 bg-white rounded-2xl p-2 shadow-sm border border-amber-100">
-                    <button
-                        onClick={() => setActiveTab('pending')}
-                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeTab === 'pending'
-                            ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-white shadow-lg'
-                            : 'text-stone-600 hover:bg-amber-50'
-                            }`}
-                    >
-                        Pending ({statistics.pendingRequests})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('active')}
-                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeTab === 'active'
-                            ? 'bg-gradient-to-r from-stone-600 to-stone-800 text-white shadow-lg'
-                            : 'text-stone-600 hover:bg-amber-50'
-                            }`}
-                    >
-                        Active ({statistics.activeCases})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('all')}
-                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeTab === 'all'
-                            ? 'bg-gradient-to-r from-amber-800 to-stone-900 text-white shadow-lg'
-                            : 'text-stone-600 hover:bg-amber-50'
-                            }`}
-                    >
-                        All Cases ({statistics.totalCases})
-                    </button>
-                </div>
-
-                {/* Cases List */}
-                <div className="space-y-4">
-                    {getFilteredCases().length > 0 ? (
-                        getFilteredCases().map((caseItem) => (
-                            <div
-                                key={caseItem._id}
-                                onClick={() => setSelectedCase(caseItem)}
-                                className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:border-amber-400 transition-all cursor-pointer group"
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <h3 className="text-lg font-bold text-stone-900 group-hover:text-amber-700 transition-colors">
-                                                {caseItem.title}
-                                            </h3>
-                                            {getStatusBadge(caseItem.status)}
-                                            {caseItem.priority === 'high' && (
-                                                <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
-                                                    HIGH PRIORITY
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-stone-600 mb-3 line-clamp-2">{caseItem.description}</p>
-                                        <div className="flex items-center gap-6 text-sm text-stone-500">
-                                            <span className="flex items-center gap-1">
-                                                <FileText className="w-4 h-4" />
-                                                {caseItem.caseNumber}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <User className="w-4 h-4" />
-                                                {caseItem.client?.name}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Briefcase className="w-4 h-4" />
-                                                {caseItem.caseType}
-                                            </span>
-                                            {caseItem.documents && caseItem.documents.length > 0 && (
-                                                <span className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full">
-                                                    <File className="w-4 h-4 text-amber-700" />
-                                                    <span className="text-amber-700 font-semibold">{caseItem.documents.length} files</span>
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="w-6 h-6 text-stone-400 group-hover:text-amber-700 transition-colors flex-shrink-0 ml-4" />
-                                </div>
-
-                                {/* Quick Actions for Pending Cases */}
-                                {caseItem.status === 'submitted' && (
-                                    <div className="mt-4 pt-4 border-t border-amber-100 flex gap-2">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                updateCaseStatus(caseItem._id, 'under_review');
-                                            }}
-                                            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg text-sm font-bold transition-all shadow-md"
-                                        >
-                                            Accept Case
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                updateCaseStatus(caseItem._id, 'closed');
-                                            }}
-                                            className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-sm font-bold transition-all"
-                                        >
-                                            Decline
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedCaseForChat(caseItem);
-                                                setShowChat(true);
-                                            }}
-                                            className="ml-auto px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2"
-                                        >
-                                            <MessageCircle className="w-4 h-4" />
-                                            Message
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    ) : (
-                        <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-amber-100">
-                            <Briefcase className="w-16 h-16 text-stone-300 mx-auto mb-4" />
-                            <p className="text-stone-500 text-lg mb-2">No {activeTab} cases</p>
-                            <p className="text-stone-400 text-sm">
-                                {activeTab === 'pending' ? 'No new requests at the moment' : 'Cases will appear here'}
+                {dashboardTab === 'home' && (
+                    <>
+                        {/* Welcome Banner */}
+                        <div className="mb-8 bg-gradient-to-r from-[#4a3728] to-[#2d2926] rounded-3xl p-8 text-[#faf7f0] shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+                            <h2 className="text-3xl font-black mb-2 relative z-10 tracking-tight">Welcome back, Advocate {user?.name}!</h2>
+                            <p className="text-[#faf7f0]/80 relative z-10 font-medium italic">
+                                {statistics.pendingRequests > 0
+                                    ? `You have ${statistics.pendingRequests} new case ${statistics.pendingRequests === 1 ? 'request' : 'requests'} waiting for your review.`
+                                    : "All caught up! No pending requests at the moment."}
                             </p>
                         </div>
-                    )}
-                </div>
+
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-semibold text-stone-500">Pending</span>
+                                    <AlertCircle className="w-5 h-5 text-orange-500" />
+                                </div>
+                                <p className="text-3xl font-bold text-stone-900">{statistics.pendingRequests}</p>
+                                <p className="text-xs text-stone-500 mt-1">New requests</p>
+                            </div>
+
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-semibold text-stone-500">Active Cases</span>
+                                    <Briefcase className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <p className="text-3xl font-bold text-stone-900">{statistics.activeCases}</p>
+                                <p className="text-xs text-stone-500 mt-1">In progress</p>
+                            </div>
+
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-semibold text-stone-500">Clients</span>
+                                    <Users className="w-5 h-5 text-stone-600" />
+                                </div>
+                                <p className="text-3xl font-bold text-stone-900">{statistics.totalClients}</p>
+                                <p className="text-xs text-stone-500 mt-1">Total clients</p>
+                            </div>
+
+                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-md transition-shadow">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-semibold text-stone-500">Completed</span>
+                                    <CheckCircle className="w-5 h-5 text-green-500" />
+                                </div>
+                                <p className="text-3xl font-bold text-stone-900">{statistics.completedCases}</p>
+                                <p className="text-xs text-stone-500 mt-1">Cases closed</p>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="mb-6 flex gap-2 bg-white rounded-2xl p-2 shadow-sm border border-amber-100">
+                            <button
+                                onClick={() => setActiveTab('pending')}
+                                className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeTab === 'pending'
+                                    ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-white shadow-lg'
+                                    : 'text-stone-600 hover:bg-amber-50'
+                                    }`}
+                            >
+                                Pending ({statistics.pendingRequests})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('active')}
+                                className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeTab === 'active'
+                                    ? 'bg-gradient-to-r from-stone-600 to-stone-800 text-white shadow-lg'
+                                    : 'text-stone-600 hover:bg-amber-50'
+                                    }`}
+                            >
+                                Active ({statistics.activeCases})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('all')}
+                                className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeTab === 'all'
+                                    ? 'bg-gradient-to-r from-amber-800 to-stone-900 text-white shadow-lg'
+                                    : 'text-stone-600 hover:bg-amber-50'
+                                    }`}
+                            >
+                                All Cases ({statistics.totalCases})
+                            </button>
+                        </div>
+
+                        {/* Cases List */}
+                        <div className="space-y-4">
+                            {getFilteredCases().length > 0 ? (
+                                getFilteredCases().map((caseItem) => (
+                                    <div
+                                        key={caseItem._id}
+                                        onClick={() => setSelectedCase(caseItem)}
+                                        className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100 hover:shadow-lg hover:border-amber-400 transition-all cursor-pointer group"
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h3 className="text-lg font-bold text-stone-900 group-hover:text-amber-700 transition-colors">
+                                                        {caseItem.title}
+                                                    </h3>
+                                                    {getStatusBadge(caseItem.status)}
+                                                    {caseItem.priority === 'high' && (
+                                                        <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">
+                                                            HIGH PRIORITY
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-stone-600 mb-3 line-clamp-2">{caseItem.description}</p>
+                                                <div className="flex items-center gap-6 text-sm text-stone-500">
+                                                    <span className="flex items-center gap-1">
+                                                        <FileText className="w-4 h-4" />
+                                                        {caseItem.caseNumber}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <User className="w-4 h-4" />
+                                                        {caseItem.client?.name}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <Briefcase className="w-4 h-4" />
+                                                        {caseItem.caseType}
+                                                    </span>
+                                                    {caseItem.documents && caseItem.documents.length > 0 && (
+                                                        <span className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-full">
+                                                            <File className="w-4 h-4 text-amber-700" />
+                                                            <span className="text-amber-700 font-semibold">{caseItem.documents.length} files</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="w-6 h-6 text-stone-400 group-hover:text-amber-700 transition-colors flex-shrink-0 ml-4" />
+                                        </div>
+
+                                        {/* Quick Actions for Pending Cases */}
+                                        {caseItem.status === 'submitted' && (
+                                            <div className="mt-4 pt-4 border-t border-amber-100 flex gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        updateCaseStatus(caseItem._id, 'under_review');
+                                                    }}
+                                                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg text-sm font-bold transition-all shadow-md"
+                                                >
+                                                    Accept Case
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        updateCaseStatus(caseItem._id, 'closed');
+                                                    }}
+                                                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-sm font-bold transition-all"
+                                                >
+                                                    Decline
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCaseForChat(caseItem);
+                                                        setShowChat(true);
+                                                    }}
+                                                    className="ml-auto px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2"
+                                                >
+                                                    <MessageCircle className="w-4 h-4" />
+                                                    Message
+                                                </button>
+                                                <a
+                                                    href={`tel:${caseItem.client?.phone || ''}`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="px-4 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2"
+                                                >
+                                                    <Phone className="w-4 h-4" />
+                                                    Call Client
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-amber-100">
+                                    <Briefcase className="w-16 h-16 text-stone-300 mx-auto mb-4" />
+                                    <p className="text-stone-500 text-lg mb-2">No {activeTab} cases</p>
+                                    <p className="text-stone-400 text-sm">
+                                        {activeTab === 'pending' ? 'No new requests at the moment' : 'Cases will appear here'}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+
+                {dashboardTab === 'profile' && (
+                    <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Professional Profile</h2>
+                            <p className="text-[#8d6e63] font-medium italic mt-1">Showcase your expertise to potential clients on CaseBridge.</p>
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-[#8d6e63]/10 shadow-sm overflow-hidden mb-12">
+                            <div className="p-8">
+                                <form onSubmit={handleUpdateProfile} className="space-y-8">
+                                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                                        <div className="w-full md:w-1/3 flex flex-col items-center">
+                                            <div className="w-40 h-40 rounded-2xl bg-amber-50 border-2 border-dashed border-amber-200 flex items-center justify-center overflow-hidden relative group">
+                                                {profileData.profilePicture ? (
+                                                    <img src={profileData.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <User className="w-16 h-16 text-amber-200" />
+                                                )}
+                                                <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                                                    <span className="text-white text-xs font-bold uppercase tracking-wider">Change Photo</span>
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files[0];
+                                                            if (file) {
+                                                                const reader = new FileReader();
+                                                                reader.onloadend = () => setProfileData({ ...profileData, profilePicture: reader.result });
+                                                                reader.readAsDataURL(file);
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+                                            <p className="mt-4 text-[11px] font-black text-stone-400 uppercase tracking-widest text-center">Professional Headshot</p>
+                                        </div>
+
+                                        <div className="w-full md:w-2/3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="md:col-span-2">
+                                                <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Display Name</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-4 py-3 bg-[#faf7f0]/50 border border-[#8d6e63]/20 rounded-lg focus:border-[#4a3728] outline-none transition-all font-medium"
+                                                    value={profileData.name}
+                                                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                                                    placeholder="e.g. Adv. Rajesh Kumar"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Years of Experience</label>
+                                                <input
+                                                    type="number"
+                                                    className="w-full px-4 py-3 bg-[#faf7f0]/50 border border-[#8d6e63]/20 rounded-lg focus:border-[#4a3728] outline-none transition-all font-medium"
+                                                    value={profileData.yearsOfExperience}
+                                                    onChange={(e) => setProfileData({ ...profileData, yearsOfExperience: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Primary Location</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-4 py-3 bg-[#faf7f0]/50 border border-[#8d6e63]/20 rounded-lg focus:border-[#4a3728] outline-none transition-all font-medium"
+                                                    value={profileData.location}
+                                                    onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                                                    placeholder="e.g. Mumbai, Maharashtra"
+                                                />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-xs font-black text-[#8d6e63] uppercase tracking-widest mb-2">Specializations (Comma separated)</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-4 py-3 bg-[#faf7f0]/50 border border-[#8d6e63]/20 rounded-lg focus:border-[#4a3728] outline-none transition-all font-medium"
+                                                    value={profileData.specializations}
+                                                    onChange={(e) => setProfileData({ ...profileData, specializations: e.target.value })}
+                                                    placeholder="Criminal Law, Family Law, Corporate Law"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-8 border-t border-[#faf7f0] flex justify-end">
+                                        <button
+                                            type="submit"
+                                            disabled={updatingProfile}
+                                            className="px-10 py-4 bg-[#4a3728] text-[#faf7f0] rounded-md font-black text-xs uppercase tracking-widest hover:bg-[#1a1a1a] transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                                        >
+                                            {updatingProfile ? 'Saving Changes...' : 'Save Professional Profile'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
 
             <SiteFooter />
@@ -515,6 +679,13 @@ export default function LawyerDashboard() {
                                     >
                                         Close Case
                                     </button>
+                                    <a
+                                        href={`tel:${selectedCase.client?.phone || ''}`}
+                                        className="px-6 py-2 bg-stone-800 hover:bg-stone-900 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-2 ml-auto"
+                                    >
+                                        <Phone className="w-4 h-4" />
+                                        Call Client
+                                    </a>
                                 </div>
                             </div>
 

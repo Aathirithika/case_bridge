@@ -117,7 +117,8 @@ router.post('/register-lawyer', async (req, res) => {
             barCouncilNumber,
             yearsOfExperience,
             location,
-            specializations
+            specializations,
+            profilePicture
         } = req.body;
 
         // Check if user exists
@@ -166,6 +167,7 @@ router.post('/register-lawyer', async (req, res) => {
             yearsOfExperience,
             location,
             specializations,
+            profilePicture,
             isVerified: true,
             verificationStatus: 'approved',
         });
@@ -227,8 +229,50 @@ router.post('/login', async (req, res) => {
 // @route   GET /api/auth/profile
 // @desc    Get user profile
 // @access  Private
-router.get('/profile', protect, async (req, res) => {
-    res.json(req.user);
+// @route   PUT /api/auth/profile
+// @desc    Update user profile
+// @access  Private
+router.put('/profile', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (user) {
+            user.name = req.body.name || user.name;
+            user.phone = req.body.phone || user.phone;
+            user.location = req.body.location || user.location;
+
+            if (user.role === 'lawyer') {
+                user.yearsOfExperience = req.body.yearsOfExperience || user.yearsOfExperience;
+                user.specializations = req.body.specializations || user.specializations;
+                user.profilePicture = req.body.profilePicture || user.profilePicture;
+            }
+
+            if (req.body.password) {
+                user.password = req.body.password;
+            }
+
+            const updatedUser = await user.save();
+
+            res.json({
+                _id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                role: updatedUser.role,
+                location: updatedUser.location,
+                yearsOfExperience: updatedUser.yearsOfExperience,
+                specializations: updatedUser.specializations,
+                profilePicture: updatedUser.profilePicture,
+                isVerified: updatedUser.isVerified,
+                verificationStatus: updatedUser.verificationStatus,
+                token: generateToken(updatedUser._id),
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
 
 export default router;

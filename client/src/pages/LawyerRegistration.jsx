@@ -14,7 +14,8 @@ export default function LawyerRegistration() {
         yearsOfExperience: '',
         location: '',
         specializations: [],
-        password: ''
+        password: '',
+        profilePicture: ''
     });
 
     const [verificationStatus, setVerificationStatus] = useState({
@@ -88,6 +89,24 @@ export default function LawyerRegistration() {
                 error: error.response?.data?.message || 'Verification failed. Please check the number.',
                 lawyerName: ''
             });
+        }
+    };
+
+    const handlePhotoUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Photo size should be less than 2MB');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    profilePicture: reader.result
+                }));
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -345,6 +364,38 @@ export default function LawyerRegistration() {
                                 ))}
                             </div>
                             <p className="mt-2 text-sm text-stone-500">Select at least one specialization</p>
+                        </div>
+
+                        {/* Profile Photo */}
+                        <div>
+                            <label className="block text-base font-semibold text-stone-900 mb-3">
+                                Profile Photo
+                            </label>
+                            <div className="flex items-center gap-6">
+                                <div className="w-24 h-24 bg-amber-100 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed border-amber-300">
+                                    {formData.profilePicture ? (
+                                        <img src={formData.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="text-amber-400 text-xs font-bold text-center px-2">No Photo</div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handlePhotoUpload}
+                                        className="hidden"
+                                        id="photo-upload"
+                                    />
+                                    <label
+                                        htmlFor="photo-upload"
+                                        className="inline-block px-6 py-3 bg-stone-800 text-white rounded-xl text-sm font-bold cursor-pointer hover:bg-stone-700 transition-colors"
+                                    >
+                                        Upload Photo
+                                    </label>
+                                    <p className="mt-2 text-xs text-stone-500">JPG, PNG (Max 2MB). This photo will be visible to clients.</p>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Password */}

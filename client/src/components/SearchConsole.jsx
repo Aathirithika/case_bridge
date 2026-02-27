@@ -2,6 +2,9 @@ import React from 'react';
 import { Search, Clock } from 'lucide-react';
 
 export default function SearchConsole({ searchTerm, setSearchTerm, onSearch }) {
+    const [specialization, setSpecialization] = React.useState('');
+    const [location, setLocation] = React.useState('');
+
     return (
         <div className="bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-6 md:p-8 flex flex-col md:flex-row gap-4 items-end border border-[#8d6e63]/10">
             <div className="flex-1 w-full">
@@ -19,11 +22,15 @@ export default function SearchConsole({ searchTerm, setSearchTerm, onSearch }) {
             </div>
             <div className="w-full md:w-48">
                 <div className="relative">
-                    <select className="w-full px-5 py-4 bg-[#faf7f0]/30 border border-[#8d6e63]/20 rounded-lg outline-none text-sm font-bold text-gray-700 appearance-none focus:border-[#4a3728] transition-all cursor-pointer">
-                        <option>Select City</option>
-                        <option>Delhi</option>
-                        <option>Mumbai</option>
-                        <option>Bangalore</option>
+                    <select
+                        className="w-full px-5 py-4 bg-[#faf7f0]/30 border border-[#8d6e63]/20 rounded-lg outline-none text-sm font-bold text-gray-700 appearance-none focus:border-[#4a3728] transition-all cursor-pointer"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                    >
+                        <option value="">Select City</option>
+                        <option value="Delhi">Delhi</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Bangalore">Bangalore</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#8d6e63]/50">
                         <Clock className="w-4 h-4" />
@@ -32,11 +39,15 @@ export default function SearchConsole({ searchTerm, setSearchTerm, onSearch }) {
             </div>
             <div className="w-full md:w-64">
                 <div className="relative">
-                    <select className="w-full px-5 py-4 bg-[#faf7f0]/30 border border-[#8d6e63]/20 rounded-lg outline-none text-sm font-bold text-gray-700 appearance-none focus:border-[#4a3728] transition-all cursor-pointer">
-                        <option>Select Practice Areas</option>
-                        <option>Property Law</option>
-                        <option>Family Law</option>
-                        <option>Criminal Law</option>
+                    <select
+                        className="w-full px-5 py-4 bg-[#faf7f0]/30 border border-[#8d6e63]/20 rounded-lg outline-none text-sm font-bold text-gray-700 appearance-none focus:border-[#4a3728] transition-all cursor-pointer"
+                        value={specialization}
+                        onChange={(e) => setSpecialization(e.target.value)}
+                    >
+                        <option value="">Select Practice Areas</option>
+                        <option value="Property Law">Property Law</option>
+                        <option value="Family Law">Family Law</option>
+                        <option value="Criminal Law">Criminal Law</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#8d6e63]/50">
                         <Clock className="w-4 h-4" />
@@ -44,7 +55,7 @@ export default function SearchConsole({ searchTerm, setSearchTerm, onSearch }) {
                 </div>
             </div>
             <button
-                onClick={onSearch}
+                onClick={() => onSearch({ specialization, location })}
                 className="w-full md:w-auto px-10 py-4 bg-[#4a3728] hover:bg-[#3d2e22] text-[#faf7f0] rounded-lg font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-[#4a3728]/10 active:scale-95"
             >
                 Search

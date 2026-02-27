@@ -42,9 +42,9 @@ export default function Navbar({ user, onLogout }) {
                         </div>
 
                         <nav className="hidden lg:flex items-center gap-8 text-[12px] font-extrabold text-stone-500 uppercase tracking-widest">
-                            <a href="#" className="hover:text-[#4a3728] transition-colors">Find a Lawyer</a>
+                            <button onClick={() => navigate('/find-lawyer')} className="hover:text-[#4a3728] transition-colors">Find a Lawyer</button>
                             <a href="#" className="hover:text-[#4a3728] transition-colors">Legal Advice</a>
-                            <a href="#" className="hover:text-[#4a3728] transition-colors">IPC Sections</a>
+                            <button onClick={() => navigate('/ipc-sections')} className="hover:text-[#4a3728] transition-colors">IPC Sections</button>
                         </nav>
                     </div>
 

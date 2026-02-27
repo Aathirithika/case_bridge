@@ -68,6 +68,9 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  profilePicture: {
+    type: String, // Base64 encoded image
+  },
 
   // Legacy fields (kept for backward compatibility if needed)
   lawyerProfile: {

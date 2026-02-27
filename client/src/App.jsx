@@ -10,6 +10,8 @@ import LawyerDashboard from './pages/LawyerDashboard';
 import LawyerRegistration from './pages/LawyerRegistration';
 import VoiceAssistantPage from './pages/VoiceAssistantPage';
 import Messages from './pages/Messages';
+import FindLawyer from './pages/FindLawyer';
+import IPCSections from './pages/IPCSections';
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
           <Route path="/lawyer-dashboard" element={<LawyerDashboard />} />
           <Route path="/voice-assistant" element={<VoiceAssistantPage />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/find-lawyer" element={<FindLawyer />} />
+          <Route path="/ipc-sections" element={<IPCSections />} />
         </Routes>
       </Router>
     </AccessibilityProvider>
