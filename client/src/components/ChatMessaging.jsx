@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import api from '../utils/axiosConfig';
 import socketService from '../utils/socketService';
-
 export default function ChatMessaging({ caseId, currentUser, recipientUser, isOpen, onClose, hideHeader = false, standalone = false }) {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');

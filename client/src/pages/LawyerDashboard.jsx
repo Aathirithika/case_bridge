@@ -49,31 +49,51 @@ export default function LawyerDashboard() {
         profilePicture: ''
     });
     const [updatingProfile, setUpdatingProfile] = useState(false);
+    const [activeTab, setActiveTab] = useState('pending'); // pending, active, all
+    const isFetchingRef = React.useRef(false);
     const [showChat, setShowChat] = useState(false);
     const [selectedCaseForChat, setSelectedCaseForChat] = useState(null);
 
     useEffect(() => {
+        console.log('LawyerDashboard: MOUNTED');
         fetchProfile();
+        return () => console.log('LawyerDashboard: UNMOUNTED');
     }, []);
 
     useEffect(() => {
-        if (user) {
+        if (user && !loading) {
+            console.log('LawyerDashboard: User data available, fetching cases');
             fetchCases();
         }
-    }, [user]);
+    }, [user, loading]);
 
     const fetchProfile = async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        console.log('LawyerDashboard: Fetching profile (Guard: ON)...');
+        console.trace('LawyerDashboard: fetchProfile Trace');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.log('LawyerDashboard: Profile fetch timed out (5s)');
+            controller.abort();
+        }, 5000);
+
         try {
             const token = localStorage.getItem('token');
+            console.log('LawyerDashboard: Header token present:', !!token);
             if (!token) {
+                console.log('LawyerDashboard: No token, redirecting to login');
                 navigate('/login');
+                clearTimeout(timeoutId);
                 return;
             }
 
             const response = await api.get('/api/auth/profile', {
                 headers: { Authorization: `Bearer ${token}` },
+                signal: controller.signal
             });
 
+            console.log('LawyerDashboard: Profile received:', response.data);
             setUser(response.data);
             setProfileData({
                 name: response.data.name,
@@ -85,15 +105,23 @@ export default function LawyerDashboard() {
             });
 
             if (response.data.role !== 'lawyer') {
+                console.log('LawyerDashboard: Role mismatch, redirecting to client dashboard');
                 navigate('/client-dashboard');
             }
         } catch (error) {
-            console.error('Error fetching profile:', error);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/login');
+            console.error('LawyerDashboard: Error during fetchProfile:', error);
+            if (error.name === 'AbortError') {
+                console.log('LawyerDashboard: Fetch aborted due to timeout');
+            } else {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                navigate('/login');
+            }
         } finally {
+            clearTimeout(timeoutId);
+            console.log('LawyerDashboard: Setting loading to false');
             setLoading(false);
+            isFetchingRef.current = false;
         }
     };
 

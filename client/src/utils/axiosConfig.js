@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-    baseURL: 'http://localhost:5000',
+    // In development, we use relative URLs to let Vite proxy handle it.
+    // In production, you would typically use an absolute URL or a specific environment variable.
+    baseURL: '',
     headers: {
         'Content-Type': 'application/json',
     },

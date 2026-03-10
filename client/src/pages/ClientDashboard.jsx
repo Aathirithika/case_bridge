@@ -47,6 +47,10 @@ export default function ClientDashboard() {
     const [selectedCaseForChat, setSelectedCaseForChat] = useState(null);
     const [showQuickChatLawyer, setShowQuickChatLawyer] = useState(null);
     const [showWelcome, setShowWelcome] = useState(true);
+    const [showQuickChatModal, setShowQuickChatModal] = useState(false);
+    const [quickChatLawyer, setQuickChatLawyer] = useState(null);
+    const [showIssueModal, setShowIssueModal] = useState(false);
+    const [issueData, setIssueData] = useState({ title: '', caseType: 'Criminal Law', description: '', priority: 'medium' });
     const [activeTab, setActiveTab] = useState('all'); // all, active, pending, closed
     const [dashboardTab, setDashboardTab] = useState('home'); // home, consultations, profile
     const [profileData, setProfileData] = useState({
@@ -56,6 +60,7 @@ export default function ClientDashboard() {
         location: ''
     });
     const [updatingProfile, setUpdatingProfile] = useState(false);
+    const isFetchingRef = React.useRef(false);
     const caseTypeMapping = {
         'family': 'Family Law',
         'property': 'Property Law',
@@ -74,28 +79,46 @@ export default function ClientDashboard() {
     });
 
     useEffect(() => {
+        console.log('ClientDashboard: MOUNTED');
         fetchProfile();
-    }, [navigate]);
+        return () => console.log('ClientDashboard: UNMOUNTED');
+    }, []);
 
     useEffect(() => {
-        if (user) {
+        if (user && !loading) {
+            console.log('ClientDashboard: User data available, fetching secondary data');
             fetchLawyers();
             fetchMyCases();
         }
-    }, [user]);
+    }, [user, loading]);
 
     const fetchProfile = async () => {
+        if (isFetchingRef.current) return;
+        isFetchingRef.current = true;
+        console.log('ClientDashboard: Fetching profile (Guard: ON)...');
+        console.trace('ClientDashboard: fetchProfile Trace');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.log('ClientDashboard: Profile fetch timed out (5s)');
+            controller.abort();
+        }, 5000);
+
         try {
             const token = localStorage.getItem('token');
+            console.log('ClientDashboard: Header token present:', !!token);
             if (!token) {
+                console.log('ClientDashboard: No token, redirecting to login');
                 navigate('/login');
+                clearTimeout(timeoutId);
                 return;
             }
 
             const response = await api.get('/api/auth/profile', {
                 headers: { Authorization: `Bearer ${token}` },
+                signal: controller.signal
             });
 
+            console.log('ClientDashboard: Profile received:', response.data);
             setUser(response.data);
             setProfileData({
                 name: response.data.name,
@@ -105,15 +128,23 @@ export default function ClientDashboard() {
             });
 
             if (response.data.role !== 'client') {
+                console.log('ClientDashboard: Role mismatch, redirecting to lawyer dashboard');
                 navigate('/lawyer-dashboard');
             }
         } catch (error) {
-            console.error('Error fetching profile:', error);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/login');
+            console.error('ClientDashboard: Error during fetchProfile:', error);
+            if (error.name === 'AbortError') {
+                console.log('ClientDashboard: Fetch aborted due to timeout');
+            } else {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                navigate('/login');
+            }
         } finally {
+            clearTimeout(timeoutId);
+            console.log('ClientDashboard: Setting loading to false');
             setLoading(false);
+            isFetchingRef.current = false;
         }
     };
 

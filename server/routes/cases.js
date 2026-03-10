@@ -8,6 +8,7 @@ const router = express.Router();
 // @desc    Get all cases for logged-in user (lawyer or client)
 // @access  Private
 router.get('/', protect, async (req, res) => {
+    console.log('API: GET /api/cases called by', req.user?._id, 'role:', req.user?.role);
     try {
         // Get filter parameters from query
         const { status, caseType, priority } = req.query;

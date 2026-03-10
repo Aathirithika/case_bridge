@@ -229,6 +229,26 @@ router.post('/login', async (req, res) => {
 // @route   GET /api/auth/profile
 // @desc    Get user profile
 // @access  Private
+router.get('/profile', protect, async (req, res) => {
+    try {
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}] AUTH_PROFILE: Request from ${req.user._id} (${req.user.name})`);
+        console.log(`[${timestamp}] AUTH_PROFILE: User-Agent: ${req.headers['user-agent']}`);
+
+        const user = await User.findById(req.user._id).select('-password');
+        if (user) {
+            console.log('API: Found user for profile:', user.name);
+            res.json(user);
+        } else {
+            console.error('API: User not found for profile id:', req.user._id);
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        console.error('API: Profile fetch error:', error.message);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 // @route   PUT /api/auth/profile
 // @desc    Update user profile
 // @access  Private

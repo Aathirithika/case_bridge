@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Scale, Lock, Mail, User, Briefcase, ArrowLeft } from 'lucide-react';
 import api from '../utils/axiosConfig';
+import Navbar from '../components/Navbar';
+import SiteFooter from '../components/SiteFooter';
 
 export default function Register() {
     const navigate = useNavigate();
@@ -74,6 +76,7 @@ export default function Register() {
         setLoading(true);
 
         try {
+            console.log('Sending registration request for role:', formData.role);
             const response = await api.post('/api/auth/register', {
                 name: formData.name,
                 email: formData.email,
@@ -81,15 +84,20 @@ export default function Register() {
                 role: formData.role,
             });
 
+            console.log('Registration successful, response data:', response.data);
+
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data));
 
             if (response.data.role === 'lawyer') {
+                console.log('Redirecting to lawyer dashboard');
                 navigate('/lawyer-dashboard');
             } else {
+                console.log('Redirecting to client dashboard');
                 navigate('/client-dashboard');
             }
         } catch (err) {
+            console.error('Registration error details:', err);
             setError(err.response?.data?.message || 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
@@ -97,48 +105,42 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen bg-amber-50 flex flex-col">
-            <header className="bg-stone-800 text-white px-6 py-4 shadow-lg flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Scale className="w-6 h-6" />
-                    <span className="text-xl font-semibold">CaseBridge Legal Platform</span>
-                </div>
-                <button
-                    onClick={() => navigate('/')}
-                    className="text-sm text-stone-400 hover:text-white transition-colors"
-                >
-                    Back to Home
-                </button>
-            </header>
+        <div className="min-h-screen bg-[#faf7f0] flex flex-col font-sans">
+            <Navbar />
 
-            <main className="flex-1 flex items-center justify-center px-6 py-12">
-                <div className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden">
-                    <div className="flex border-b border-amber-100">
+            <main className="flex-1 flex items-center justify-center px-6 py-12 relative overflow-hidden">
+                {/* Decorative Background Elements */}
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden opacity-5">
+                    <div className="absolute -top-[10%] -left-[5%] w-[40%] h-[40%] bg-[#8d6e63] rounded-full blur-[120px]"></div>
+                    <div className="absolute -bottom-[10%] -right-[5%] w-[40%] h-[40%] bg-[#4a3728] rounded-full blur-[120px]"></div>
+                </div>
+                <div className="w-full max-w-md bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-[#8d6e63]/10 overflow-hidden relative z-10">
+                    <div className="flex border-b border-stone-100">
                         <button
                             onClick={() => setIsLogin(true)}
-                            className={`flex-1 py-4 font-bold text-sm transition-colors ${isLogin ? 'text-amber-700 border-b-2 border-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
+                            className={`flex-1 py-5 font-black text-[11px] transition-colors tracking-[0.2em] ${isLogin ? 'text-[#4a3728] border-b-2 border-[#4a3728]' : 'text-stone-400 hover:text-stone-600'}`}
                         >
                             LOGIN
                         </button>
                         <button
                             onClick={() => setIsLogin(false)}
-                            className={`flex-1 py-4 font-bold text-sm transition-colors ${!isLogin ? 'text-amber-700 border-b-2 border-amber-700' : 'text-stone-400 hover:text-stone-600'}`}
+                            className={`flex-1 py-5 font-black text-[11px] transition-colors tracking-[0.2em] ${!isLogin ? 'text-[#4a3728] border-b-2 border-[#4a3728]' : 'text-stone-400 hover:text-stone-600'}`}
                         >
                             REGISTER
                         </button>
                     </div>
 
-                    <div className="p-8">
-                        <div className="flex justify-center mb-6">
-                            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
-                                <Scale className="w-8 h-8 text-amber-700" />
+                    <div className="p-10">
+                        <div className="flex justify-center mb-8">
+                            <div className="w-16 h-16 bg-[#faf7f0] rounded-2xl flex items-center justify-center border border-[#8d6e63]/10 shadow-inner">
+                                <Scale className="w-8 h-8 text-[#4a3728]" />
                             </div>
                         </div>
 
-                        <h2 className="text-2xl font-bold text-stone-900 text-center mb-2">
+                        <h2 className="text-3xl font-black text-[#1a1a1a] text-center mb-2 tracking-tight uppercase">
                             {isLogin ? 'Welcome Back' : 'Create Account'}
                         </h2>
-                        <p className="text-stone-500 text-center text-sm mb-8">
+                        <p className="text-[#8d6e63] text-center text-[10px] font-black uppercase tracking-[0.2em] mb-10 italic">
                             {isLogin ? 'Sign in to your CaseBridge account' : `Join as a ${formData.role === 'lawyer' ? 'Lawyer' : 'Client'}`}
                         </p>
 
@@ -259,25 +261,26 @@ export default function Register() {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-amber-700 text-white py-4 rounded-2xl font-bold hover:bg-amber-800 transition-all shadow-lg shadow-amber-100"
+                                    className="w-full bg-[#4a3728] hover:bg-[#3d2e22] text-[#faf7f0] py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-[#4a3728]/10 hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {loading ? 'Creating account...' : 'Create Account'}
+                                    {loading ? (isLogin ? 'Authenticating...' : 'Creating Account...') : (isLogin ? 'Sign In Now' : 'Create Account')}
                                 </button>
                             </form>
                         )}
 
-                        <div className="mt-8 text-center">
+                        <div className="mt-10 text-center">
                             <button
                                 onClick={() => navigate('/role-selection')}
-                                className="text-xs text-stone-500 hover:text-stone-700 flex items-center justify-center gap-1 mx-auto"
+                                className="text-[10px] font-black text-[#8d6e63] hover:text-[#4a3728] transition-colors uppercase tracking-widest flex items-center justify-center gap-2 mx-auto"
                             >
-                                <ArrowLeft size={12} />
+                                <ArrowLeft size={14} />
                                 Change selected role ({formData.role})
                             </button>
                         </div>
                     </div>
                 </div>
             </main>
+            <SiteFooter />
         </div>
     );
 }
