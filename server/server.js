@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 import authRoutes from './routes/auth.js';
 import caseRoutes from './routes/cases.js';
@@ -11,6 +12,8 @@ import lawyerRoutes from './routes/lawyers.js';
 import voiceRoutes from './routes/voice.js';
 import messageRoutes from './routes/messages.js';
 import ipcRoutes from './routes/ipc.js';
+import aiRoutes from './routes/ai.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -44,6 +47,8 @@ app.use('/api/lawyers', lawyerRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/ipc', ipcRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -100,7 +105,28 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 
-httpServer.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Socket.IO ready on port ${PORT}`);
 });
+
+// Graceful shutdown
+const shutDown = async (signal) => {
+    console.log(`\n${signal} signal received: closing HTTP server and MongoDB connection`);
+
+    server.close(() => {
+        console.log('HTTP server closed');
+    });
+
+    try {
+        await mongoose.connection.close();
+        console.log('MongoDB connection closed through mongoose');
+        process.exit(0);
+    } catch (err) {
+        console.error('Error during database disconnection:', err);
+        process.exit(1);
+    }
+};
+
+process.on('SIGINT', () => shutDown('SIGINT'));
+process.on('SIGTERM', () => shutDown('SIGTERM'));

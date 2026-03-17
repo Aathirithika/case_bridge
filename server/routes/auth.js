@@ -65,9 +65,10 @@ router.post('/verify-bar-council', async (req, res) => {
         );
 
         if (!barCouncilRecord) {
-            return res.status(404).json({
+            return res.json({
                 isValid: false,
-                message: 'Invalid Bar Council Number'
+                pendingManualReview: true,
+                message: 'Bar Council Number not found in our records. You can still register — an admin will verify your credentials manually.'
             });
         }
 
@@ -127,17 +128,17 @@ router.post('/register-lawyer', async (req, res) => {
             return res.status(400).json({ message: 'User already exists with this email' });
         }
 
+        if (!barCouncilNumber) {
+            return res.status(400).json({
+                message: 'Bar Council Number is required',
+                field: 'barCouncilNumber'
+            });
+        }
+
         // Verify Bar Council Number in dataset
         const barCouncilRecord = barCouncilDataset.find(
             record => record.barCouncilNumber.toUpperCase() === barCouncilNumber.toUpperCase()
         );
-
-        if (!barCouncilRecord) {
-            return res.status(400).json({
-                message: 'Invalid Bar Council Number. Please check and try again.',
-                field: 'barCouncilNumber'
-            });
-        }
 
         // Check if Bar Council number is already registered
         const barNumberExists = await User.findOne({ barCouncilNumber: barCouncilNumber.toUpperCase() });
@@ -148,15 +149,20 @@ router.post('/register-lawyer', async (req, res) => {
             });
         }
 
-        // Check if the status is active
-        if (barCouncilRecord.status !== 'active') {
-            return res.status(400).json({
-                message: 'This Bar Council Number is not active. Please contact Bar Council.',
-                field: 'barCouncilNumber'
-            });
+        let isAutoVerified = false;
+
+        if (barCouncilRecord) {
+            // Check if the status is active
+            if (barCouncilRecord.status !== 'active') {
+                return res.status(400).json({
+                    message: 'This Bar Council Number is not active. Please contact Bar Council.',
+                    field: 'barCouncilNumber'
+                });
+            }
+            isAutoVerified = true;
         }
 
-        // Create lawyer user with verified status
+        // Create lawyer user — auto-verified if found in dataset, pending otherwise
         const user = await User.create({
             name: fullName,
             email,
@@ -168,12 +174,12 @@ router.post('/register-lawyer', async (req, res) => {
             location,
             specializations,
             profilePicture,
-            isVerified: true,
-            verificationStatus: 'approved',
+            isVerified: isAutoVerified,
+            verificationStatus: isAutoVerified ? 'approved' : 'pending',
         });
 
         if (user) {
-            res.status(201).json({
+            const responseData = {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
@@ -181,9 +187,17 @@ router.post('/register-lawyer', async (req, res) => {
                 barCouncilNumber: user.barCouncilNumber,
                 isVerified: user.isVerified,
                 verificationStatus: user.verificationStatus,
-                token: generateToken(user._id),
-                message: 'Registration successful! Bar Council Number verified.'
-            });
+            };
+
+            if (isAutoVerified) {
+                responseData.token = generateToken(user._id);
+                responseData.message = 'Registration successful! Bar Council Number verified.';
+            } else {
+                responseData.message = 'Registration submitted! Your credentials are under manual review by an admin. You will be able to login once approved.';
+                responseData.pendingReview = true;
+            }
+
+            res.status(201).json(responseData);
         }
     } catch (error) {
         res.status(500).json({ message: error.message });

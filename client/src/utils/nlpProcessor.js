@@ -6,13 +6,13 @@ export const nlpProcessor = {
   // Detect legal category from query
   detectCategory: (query) => {
     const keywords = {
-      family: ['divorce', 'marriage', 'child custody', 'alimony', 'adoption', 'domestic violence', 'विवाह', 'तलाक', 'குழந்தை', 'திருமணம்'],
-      property: ['property', 'land', 'house', 'rent', 'lease', 'tenant', 'eviction', 'संपत्ति', 'जमीन', 'घर', 'சொத்து', 'வீடு'],
-      criminal: ['police', 'arrest', 'bail', 'fir', 'complaint', 'theft', 'assault', 'पुलिस', 'गिरफ्तारी', 'போலீஸ்', 'கைது'],
-      business: ['business', 'company', 'partnership', 'gst', 'tax', 'contract', 'व्यापार', 'कंपनी', 'வணிகம்', 'நிறுவனம்'],
-      civil: ['compensation', 'damages', 'dispute', 'suit', 'claim', 'मुआवजा', 'विवाद', 'இழப்பீடு', 'தகராறு'],
-      labor: ['job', 'employment', 'salary', 'termination', 'workplace', 'नौकरी', 'वेतन', 'வேலை', 'சம்பளம்'],
-      consumer: ['consumer', 'product', 'defect', 'refund', 'warranty', 'उपभोक्ता', 'उत्पाद', 'நுகர்வோர்', 'பொருள்'],
+      family: ['divorce', 'marriage', 'child custody', 'alimony', 'adoption', 'domestic violence', 'dowry', 'maintenance', 'विवाह', 'तलाक', 'दहेज', 'குழந்தை', 'திருமணம்', 'விவாகரத்து', 'வரதட்சணை'],
+      property: ['property', 'land', 'house', 'rent', 'lease', 'tenant', 'eviction', 'registration', 'partition', 'संपत्ति', 'जमीन', 'घर', 'किराया', 'சொத்து', 'வீடு', 'வாடகை', 'பதிவு'],
+      criminal: ['police', 'arrest', 'bail', 'fir', 'complaint', 'theft', 'assault', 'murder', 'fraud', 'पुलिस', 'गिरफ्तारी', 'जमानत', 'चोरी', 'போலீஸ்', 'கைது', 'பிணை', 'திருட்டு'],
+      business: ['business', 'company', 'partnership', 'gst', 'tax', 'contract', 'agreement', 'startup', 'व्यापार', 'कंपनी', 'कर', 'अनुबंध', 'வணிகம்', 'நிறுவனம்', 'வரி', 'ஒப்பந்தம்'],
+      civil: ['compensation', 'damages', 'dispute', 'suit', 'claim', 'injunction', 'recovery', 'मुआवजा', 'विवाद', 'दावा', 'இழப்பீடு', 'தகராறு', 'வழக்கு'],
+      labor: ['job', 'employment', 'salary', 'termination', 'workplace', 'provident fund', 'नौकरी', 'वेतन', 'श्रमिक', 'வேலை', 'சம்பளம்', 'தொழிலாளர்'],
+      consumer: ['consumer', 'product', 'defect', 'refund', 'warranty', 'service', 'fraudulent', 'उपभोक्ता', 'उत्पाद', 'वापसी', 'நுகர்வோர்', 'பொருள்', 'குறைபாடு'],
     };
 
     const lowerQuery = query.toLowerCase();
@@ -150,17 +150,25 @@ export const nlpProcessor = {
       en: {
         'plaintiff': 'person filing the case',
         'defendant': 'person being sued',
-        'litigation': 'court case',
-        'jurisdiction': 'area where court has authority',
-        'testimony': 'statement given in court',
-        'summons': 'court notice',
-        'affidavit': 'written statement under oath',
-        'bail': 'temporary release from custody',
+        'litigation': 'court case process',
+        'jurisdiction': 'area where court has legal authority',
+        'testimony': 'statement given in court under oath',
+        'summons': 'official court notice to appear',
+        'affidavit': 'written statement confirmed by oath',
+        'bail': 'temporary release of an accused person awaiting trial',
+        'notary': 'official who verifies documents',
+        'probate': 'proving a will is valid',
       },
       hi: {
         'वादी': 'मुकदमा दायर करने वाला',
         'प्रतिवादी': 'जिस पर मुकदमा किया जा रहा है',
+        'जमानत': 'अस्थायी रिहाई',
       },
+      ta: {
+        'வாதி': 'வழக்குத் தொடருபவர்',
+        'பிரதிவாதி': 'எதிர்த்தரப்பினர்',
+        'பிணை': 'தற்காலிக விடுதலை (பெயில்)',
+      }
     };
 
     let simplified = text;

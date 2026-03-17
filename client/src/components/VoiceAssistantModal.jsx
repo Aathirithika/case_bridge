@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Mic, MicOff, Send, Globe, Volume2, Loader } from 'lucide-react';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 import nlpProcessor from '../utils/nlpProcessor';
+import api from '../utils/axiosConfig';
 
 export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) {
     const {
@@ -29,13 +30,37 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
         }
     }, [transcript]);
 
-    // Analyze text using NLP processor
-    const analyzeText = (text) => {
+    // Analyze text using NLP processor (Now powered by LLM backend)
+    const analyzeText = async (text) => {
         if (!text || text.length < 10) return;
 
         setIsAnalyzing(true);
-        setTimeout(() => {
-            const analysis = nlpProcessor.processVoiceQuery(text, language);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await api.post('/api/ai/analyze-voice', { text }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            
+            const details = response.data.details;
+            
+            // Map Gemini's response format (e.g., 'Family Law') to our internal keys ('family')
+            const catLower = details.category.toLowerCase();
+            let mappedCategory = 'other';
+            if (catLower.includes('family')) mappedCategory = 'family';
+            else if (catLower.includes('property') || catLower.includes('real estate')) mappedCategory = 'property';
+            else if (catLower.includes('criminal')) mappedCategory = 'criminal';
+            else if (catLower.includes('corporate') || catLower.includes('business')) mappedCategory = 'business';
+            else if (catLower.includes('civil')) mappedCategory = 'civil';
+            else if (catLower.includes('labor') || catLower.includes('employment')) mappedCategory = 'labor';
+            else if (catLower.includes('consumer')) mappedCategory = 'consumer';
+
+            const analysis = {
+                detectedCategory: mappedCategory,
+                urgencyLevel: details.urgency.toLowerCase() || 'normal',
+                summary: details.summary,
+                completenessAnalysis: { score: 100, missingInfo: [] } // Assume LLM gets what it needs
+            };
+
             setNlpAnalysis(analysis);
             setIsAnalyzing(false);
 
@@ -57,7 +82,13 @@ export default function VoiceAssistantModal({ isOpen, onClose, onSubmitIssue }) 
 
                 speak(message);
             }
-        }, 500);
+        } catch (error) {
+            console.error('Error analyzing text with LLM:', error);
+            // Fallback to local processor if LLM fails or API key is missing
+            const fallbackAnalysis = nlpProcessor.processVoiceQuery(text, language);
+            setNlpAnalysis(fallbackAnalysis);
+            setIsAnalyzing(false);
+        }
     };
 
     const handleMicClick = () => {

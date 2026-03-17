@@ -12,6 +12,7 @@ import VoiceAssistantPage from './pages/VoiceAssistantPage';
 import Messages from './pages/Messages';
 import FindLawyer from './pages/FindLawyer';
 import IPCSections from './pages/IPCSections';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route path="/messages" element={<Messages />} />
           <Route path="/find-lawyer" element={<FindLawyer />} />
           <Route path="/ipc-sections" element={<IPCSections />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
         </Routes>
       </Router>
     </AccessibilityProvider>

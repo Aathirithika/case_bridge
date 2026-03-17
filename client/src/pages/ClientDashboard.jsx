@@ -23,6 +23,57 @@ import ChatMessaging from '../components/ChatMessaging';
 import Navbar from '../components/Navbar';
 import SearchConsole from '../components/SearchConsole';
 import LawyerShowcase from '../components/LawyerShowcase';
+import CaseCalendar from '../components/CaseCalendar';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const CaseTimeline = ({ status }) => {
+    const steps = [
+        { id: 'submitted', label: 'Submitted' },
+        { id: 'under_review', label: 'Under Review' },
+        { id: 'in_progress', label: 'In Progress' },
+        { id: 'closed', label: 'Resolved' }
+    ];
+
+    const currentStepIndex = steps.findIndex(s => s.id === status);
+
+    return (
+        <div className="w-full py-4 mt-2">
+            <div className="relative flex items-center justify-between">
+                {/* Connecting Track */}
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
+                <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-amber-600 rounded-full z-0"
+                ></motion.div>
+
+                {/* Steps */}
+                {steps.map((step, index) => {
+                    const isCompleted = index <= currentStepIndex;
+                    const isActive = index === currentStepIndex;
+                    
+                    return (
+                        <div key={step.id} className="relative z-10 flex flex-col items-center gap-2">
+                            <motion.div 
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: index * 0.15 }}
+                                className={`w-6 h-6 rounded-full flex items-center justify-center border-[3px] ${isCompleted ? 'bg-amber-600 border-amber-600' : 'bg-white border-gray-300'} ${isActive ? 'ring-4 ring-amber-100' : ''} transition-all duration-300`}
+                            >
+                                {isCompleted && <CheckCircle className="w-3.5 h-3.5 text-white" />}
+                            </motion.div>
+                            <span className={`absolute top-8 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${isActive ? 'text-amber-700' : isCompleted ? 'text-gray-700' : 'text-gray-400'}`}>
+                                {step.label}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+            <div className="h-6"></div> {/* Spacer for absolute labels */}
+        </div>
+    );
+};
 
 export default function ClientDashboard() {
     const navigate = useNavigate();
@@ -465,6 +516,12 @@ export default function ClientDashboard() {
                     My Consultations
                 </button>
                 <button
+                    onClick={() => setDashboardTab('calendar')}
+                    className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'calendar' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
+                >
+                    📅 Calendar
+                </button>
+                <button
                     onClick={() => setDashboardTab('profile')}
                     className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'profile' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
                 >
@@ -491,19 +548,24 @@ export default function ClientDashboard() {
                                         <span className="text-[#8d6e63]">From Top Rated Lawyers</span>
                                     </h2>
                                     <p className="text-lg md:text-xl text-[#faf7f0]/80 mb-10 font-medium">
-                                        Choose from over 15,000 lawyers across 1000+ cities in India.<br />
-                                        <span className="text-[#faf7f0]/50 text-sm mt-4 block italic font-serif">"Your Secure Bridge to Justice — CaseBridge"</span>
+                                        <span className="text-[#faf7f0]/60 text-base block italic font-serif">'Your Secure Bridge to Justice - CaseBridge'</span>
                                     </p>
 
                                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                                         <button
-                                            onClick={() => setShowHireModal(true)}
+                                            onClick={() => setShowVoiceAssistant(true)}
                                             className="w-full sm:w-auto px-10 py-4 bg-[#1a1a1a] text-[#faf7f0] border border-black rounded-md font-extrabold text-sm uppercase tracking-[0.15em] hover:bg-black transition-all shadow-2xl active:scale-95"
                                         >
                                             Talk to a Lawyer
                                         </button>
                                         <button
-                                            onClick={() => setShowVoiceAssistant(true)}
+                                            onClick={() => {
+                                                setSelectedCaseForChat({
+                                                    _id: 'ai-chat-session',
+                                                    lawyer: { _id: 'ai-assistant', name: 'CaseBridge AI', role: 'ai' }
+                                                });
+                                                setShowChat(true);
+                                            }}
                                             className="w-full sm:w-auto px-10 py-4 bg-transparent border-2 border-[#faf7f0]/30 text-[#faf7f0] rounded-md font-extrabold text-sm uppercase tracking-[0.15em] hover:bg-white/5 transition-all active:scale-95"
                                         >
                                             Ask a Free Question
@@ -538,7 +600,11 @@ export default function ClientDashboard() {
                 )}
 
                 {dashboardTab === 'consultations' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-8"
+                    >
                         <div>
                             <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">My Consultations</h2>
                             <p className="text-[#8d6e63] font-medium italic mt-1">Track and manage your legal conversations and cases.</p>
@@ -588,41 +654,60 @@ export default function ClientDashboard() {
 
                         {/* Cases List */}
                         {getFilteredCases().length > 0 ? (
-                            <div className="bg-white rounded-md shadow-sm border border-[#8d6e63]/20 divide-y divide-[#8d6e63]/10 overflow-hidden">
-                                {getFilteredCases().map((c) => (
-                                    <div key={c._id} className="p-6 hover:bg-[#faf7f0]/30 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-1">
-                                                <h3 className="font-bold text-[#1a1a1a] text-lg">{c.title}</h3>
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${getStatusColor(c.status)}`}>
-                                                    {c.status.replace('_', ' ')}
-                                                </span>
+                            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-amber-900/10 divide-y divide-amber-900/5 overflow-hidden">
+                                <AnimatePresence>
+                                {getFilteredCases().map((c, idx) => (
+                                    <motion.div 
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.1 }}
+                                        key={c._id} 
+                                        className="p-8 hover:bg-amber-50/50 transition-all flex flex-col gap-6"
+                                    >
+                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <h3 className="font-black text-stone-900 text-xl tracking-tight">{c.title}</h3>
+                                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(c.status)}`}>
+                                                        {c.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-stone-500 font-medium">
+                                                    Advocate: <span className="font-bold text-amber-800">Adv. {c.lawyer?.name || 'Pending Assignment'}</span> • Ref: {c.caseNumber}
+                                                </p>
+                                                <p className="text-sm text-stone-600 mt-3 max-w-2xl leading-relaxed">
+                                                    {c.description}
+                                                </p>
                                             </div>
-                                            <p className="text-sm text-gray-500 font-medium">
-                                                Advocate: <span className="font-bold text-[#8d6e63]">Adv. {c.lawyer?.name}</span> • Ref: {c.caseNumber}
-                                            </p>
+                                            <div className="flex flex-col items-end gap-3">
+                                                {c.priority === 'high' && (
+                                                    <span className="px-3 py-1 bg-red-50 text-red-600 text-[11px] font-black uppercase rounded-lg tracking-wider border border-red-100 flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" /> Urgent
+                                                    </span>
+                                                )}
+                                                {c.lawyer && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedCaseForChat(c);
+                                                            setShowChat(true);
+                                                        }}
+                                                        className="px-6 py-3 bg-gradient-to-r from-amber-700 to-stone-800 hover:from-amber-800 hover:to-stone-900 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-2"
+                                                    >
+                                                        <MessageCircle className="w-4 h-4" />
+                                                        Message Lawyer
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            {c.priority === 'high' && (
-                                                <span className="px-3 py-1 bg-red-50 text-red-600 text-[11px] font-bold uppercase rounded-md tracking-wider border border-red-100">
-                                                    High Priority
-                                                </span>
-                                            )}
-                                            {c.lawyer && (
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedCaseForChat(c);
-                                                        setShowChat(true);
-                                                    }}
-                                                    className="px-6 py-2.5 bg-[#4a3728] hover:bg-[#1a1a1a] text-[#faf7f0] rounded-md text-xs font-black uppercase tracking-widest transition-all shadow-md flex items-center gap-2"
-                                                >
-                                                    <MessageCircle className="w-3.5 h-3.5" />
-                                                    Chat
-                                                </button>
-                                            )}
+                                        
+                                        {/* Injecting our beautiful timeline here */}
+                                        <div className="pt-4 border-t border-amber-900/5 mt-2">
+                                            <p className="text-xs font-black text-stone-400 uppercase tracking-widest mb-4">Case Progress</p>
+                                            <CaseTimeline status={c.status} />
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 ))}
+                                </AnimatePresence>
                             </div>
                         ) : (
                             <div className="bg-white/50 rounded-md p-16 text-center border border-dashed border-[#8d6e63]/30">
@@ -631,7 +716,55 @@ export default function ClientDashboard() {
                                 <p className="text-[#8d6e63] text-sm italic font-medium">Start a new request from the home tab.</p>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
+                )}
+
+                {dashboardTab === 'calendar' && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="space-y-6"
+                    >
+                        <div>
+                            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Case Calendar</h2>
+                            <p className="text-[#8d6e63] font-medium italic mt-1">Track your case submissions and status updates by date.</p>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2">
+                                <CaseCalendar cases={cases} />
+                            </div>
+                            <div className="space-y-4">
+                                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6">
+                                    <p className="text-xs font-black text-stone-500 uppercase tracking-widest mb-4">How to use</p>
+                                    <ul className="space-y-2 text-sm text-stone-500">
+                                        <li className="flex items-start gap-2"><span className="text-amber-600 font-bold">•</span> Colored dots on a date mean a case event happened that day.</li>
+                                        <li className="flex items-start gap-2"><span className="text-amber-600 font-bold">•</span> Click any date to see the details of cases on that day.</li>
+                                        <li className="flex items-start gap-2"><span className="text-amber-600 font-bold">•</span> Navigate months using the arrows in the calendar header.</li>
+                                    </ul>
+                                </div>
+                                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6">
+                                    <p className="text-xs font-black text-stone-500 uppercase tracking-widest mb-4">Recent Events</p>
+                                    {cases.length === 0 ? (
+                                        <p className="text-sm text-stone-400 italic">No cases yet.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {[...cases].sort((a,b)=> new Date(b.updatedAt||b.createdAt) - new Date(a.updatedAt||a.createdAt)).slice(0,5).map(c => (
+                                                <div key={c._id} className="flex items-center gap-3">
+                                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                                        c.status==='submitted'?'bg-amber-500':c.status==='under_review'?'bg-blue-500':c.status==='in_progress'?'bg-yellow-500':'bg-green-500'
+                                                    }`}/>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-stone-800 truncate">{c.title}</p>
+                                                        <p className="text-[10px] text-stone-400">{new Date(c.updatedAt||c.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
                 )}
 
                 {dashboardTab === 'profile' && (
@@ -701,6 +834,23 @@ export default function ClientDashboard() {
                 )}
             </main>
 
+            {/* Floating AI Chatbot Button */}
+            <button
+                onClick={() => {
+                    setSelectedCaseForChat({
+                        _id: 'ai-chat-session',
+                        lawyer: { _id: 'ai-assistant', name: 'CaseBridge AI', role: 'ai' }
+                    });
+                    setShowChat(true);
+                }}
+                className="fixed bottom-28 right-8 w-16 h-16 bg-gradient-to-br from-stone-700 to-amber-900 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-40 group"
+            >
+                <MessageCircle className="w-8 h-8" />
+                <div className="absolute right-full mr-4 bg-stone-900 text-white px-4 py-2 rounded-xl text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    AI Legal Chatbot
+                </div>
+            </button>
+
             {/* Floating Voice Assistant Button */}
             <button
                 onClick={() => setShowVoiceAssistant(true)}
@@ -710,7 +860,7 @@ export default function ClientDashboard() {
                 <div className="absolute right-full mr-4 bg-stone-900 text-white px-4 py-2 rounded-xl text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     Voice Assistant
                 </div>
-            </button >
+            </button>
 
             {/* Voice Assistant Modal */}
             < VoiceAssistantModal

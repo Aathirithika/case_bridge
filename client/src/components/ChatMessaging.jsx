@@ -44,6 +44,12 @@ export default function ChatMessaging({ caseId, currentUser, recipientUser, isOp
         socketService.joinCase(caseId);
 
         // Fetch existing messages
+        if (recipientUser?._id === 'ai-assistant') {
+            setLoading(false);
+            setMessages([]);
+            return;
+        }
+
         fetchMessages();
 
         // Listen for new messages
@@ -167,29 +173,70 @@ export default function ChatMessaging({ caseId, currentUser, recipientUser, isOp
             // Defensive check for receiver ID (handles both object and string)
             const receiverId = recipientUser?._id || recipientUser;
 
-            if (!receiverId) {
-                alert('Connection error: Recipient information is missing.');
-                return;
-            }
+            if (receiverId === 'ai-assistant') {
+                // Handle AI Chat
+                const userMsg = {
+                    _id: Date.now().toString(),
+                    sender: currentUser,
+                    receiver: recipientUser,
+                    content: newMessage.trim(),
+                    messageType: 'text',
+                    createdAt: new Date()
+                };
+                setMessages(prev => [...prev, userMsg]);
+                setNewMessage('');
+                
+                try {
+                    const response = await api.post('/api/ai/chat', { message: userMsg.content }, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    
+                    const aiMsg = {
+                        _id: (Date.now() + 1).toString(),
+                        sender: recipientUser,
+                        receiver: currentUser,
+                        content: response.data.response || "I'm sorry, I couldn't process that.",
+                        messageType: 'text',
+                        createdAt: new Date()
+                    };
+                    setMessages(prev => [...prev, aiMsg]);
+                } catch (err) {
+                    console.error('Error getting AI response:', err);
+                    const errorMsg = {
+                        _id: (Date.now() + 1).toString(),
+                        sender: recipientUser,
+                        receiver: currentUser,
+                        content: "I'm currently unable to connect to my knowledge base. Please try again later.",
+                        messageType: 'text',
+                        createdAt: new Date()
+                    };
+                    setMessages(prev => [...prev, errorMsg]);
+                }
+            } else {
+                if (!receiverId) {
+                    alert('Connection error: Recipient information is missing.');
+                    return;
+                }
 
-            const messageData = {
-                caseId,
-                receiverId,
-                messageType: uploadedFile ? 'file' : 'text',
-                content: newMessage.trim() || `Sent a file: ${uploadedFile?.name}`,
-                fileName: uploadedFile?.name,
-                fileUrl: uploadedFile?.data,
-                fileSize: uploadedFile?.size
-            };
+                const messageData = {
+                    caseId,
+                    receiverId,
+                    messageType: uploadedFile ? 'file' : 'text',
+                    content: newMessage.trim() || `Sent a file: ${uploadedFile?.name}`,
+                    fileName: uploadedFile?.name,
+                    fileUrl: uploadedFile?.data,
+                    fileSize: uploadedFile?.size
+                };
 
-            await api.post('/api/messages', messageData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+                await api.post('/api/messages', messageData, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
 
-            setNewMessage('');
-            setUploadedFile(null);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
+                setNewMessage('');
+                setUploadedFile(null);
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             }
         } catch (error) {
             console.error('Error sending message:', error);
@@ -353,6 +400,37 @@ export default function ChatMessaging({ caseId, currentUser, recipientUser, isOp
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Quick Suggestions */}
+            {!uploadedFile && messages.length > 0 && (
+                <div className="px-6 py-2 bg-white flex gap-2 overflow-x-auto no-scrollbar border-t border-stone-50">
+                    {(currentUser.role === 'client'
+                        ? [
+                            "What are the next steps?",
+                            "How much will this cost?",
+                            "When is the hearing?",
+                            "Thank you, Advocate."
+                        ]
+                        : [
+                            "Please share documents.",
+                            "Let's schedule a call.",
+                            "I am reviewing your file.",
+                            "Case is in progress."
+                        ]
+                    ).map((suggestion, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => {
+                                setNewMessage(suggestion);
+                                // Optional: Auto-send if desired, but auto-fill is safer
+                            }}
+                            className="whitespace-nowrap px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full text-[11px] font-bold border border-amber-100 transition-all active:scale-95 flex-shrink-0"
+                        >
+                            {suggestion}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* File Preview */}
             {uploadedFile && (

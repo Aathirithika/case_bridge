@@ -33,7 +33,9 @@ export default function Login() {
             localStorage.setItem('user', JSON.stringify(response.data));
 
             // Redirect based on role
-            if (response.data.role === 'lawyer') {
+            if (response.data.role === 'admin') {
+                navigate('/admin-dashboard');
+            } else if (response.data.role === 'lawyer') {
                 navigate('/lawyer-dashboard');
             } else {
                 navigate('/client-dashboard');

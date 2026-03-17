@@ -20,6 +20,7 @@ export default function LawyerRegistration() {
 
     const [verificationStatus, setVerificationStatus] = useState({
         verified: false,
+        pendingManualReview: false,
         loading: false,
         error: '',
         lawyerName: ''
@@ -48,6 +49,7 @@ export default function LawyerRegistration() {
         if (e.target.name === 'barCouncilNumber') {
             setVerificationStatus({
                 verified: false,
+                pendingManualReview: false,
                 loading: false,
                 error: '',
                 lawyerName: ''
@@ -71,6 +73,7 @@ export default function LawyerRegistration() {
             if (response.data.isValid) {
                 setVerificationStatus({
                     verified: true,
+                    pendingManualReview: false,
                     loading: false,
                     error: '',
                     lawyerName: response.data.lawyerData.name
@@ -81,10 +84,19 @@ export default function LawyerRegistration() {
                     ...prev,
                     fullName: response.data.lawyerData.name
                 }));
+            } else if (response.data.pendingManualReview) {
+                setVerificationStatus({
+                    verified: false,
+                    pendingManualReview: true,
+                    loading: false,
+                    error: '',
+                    lawyerName: ''
+                });
             }
         } catch (error) {
             setVerificationStatus({
                 verified: false,
+                pendingManualReview: false,
                 loading: false,
                 error: error.response?.data?.message || 'Verification failed. Please check the number.',
                 lawyerName: ''
@@ -121,7 +133,7 @@ export default function LawyerRegistration() {
 
     const handleNext = () => {
         // Validate step 1
-        if (!verificationStatus.verified) {
+        if (!verificationStatus.verified && !verificationStatus.pendingManualReview) {
             alert('Please verify your Bar Council Number first');
             return;
         }
@@ -157,10 +169,15 @@ export default function LawyerRegistration() {
             const response = await api.post('/api/auth/register-lawyer', formData);
 
             if (response.status === 201) {
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data));
-                alert('Registration successful!');
-                navigate('/lawyer-dashboard');
+                if (response.data.pendingReview) {
+                    // Pending review — show step 3 confirmation
+                    setStep(3);
+                } else {
+                    localStorage.setItem('token', response.data.token);
+                    localStorage.setItem('user', JSON.stringify(response.data));
+                    alert('Registration successful!');
+                    navigate('/lawyer-dashboard');
+                }
             }
         } catch (error) {
             console.error('Registration error:', error);
@@ -201,11 +218,11 @@ export default function LawyerRegistration() {
                                     placeholder="MS12345"
                                     className={`flex-1 px-6 py-4 bg-amber-50 border border-amber-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 ${verificationStatus.error ? 'ring-2 ring-red-500' : 'focus:ring-amber-500'
                                         }`}
-                                    disabled={verificationStatus.verified}
+                                    disabled={verificationStatus.verified || verificationStatus.pendingManualReview}
                                 />
                                 <button
                                     onClick={verifyBarCouncilNumber}
-                                    disabled={verificationStatus.loading || verificationStatus.verified || !formData.barCouncilNumber}
+                                    disabled={verificationStatus.loading || verificationStatus.verified || verificationStatus.pendingManualReview || !formData.barCouncilNumber}
                                     className="px-8 py-4 bg-stone-800 hover:bg-stone-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {verificationStatus.loading ? 'Verifying...' : verificationStatus.verified ? 'Verified' : 'Verify'}
@@ -214,28 +231,55 @@ export default function LawyerRegistration() {
 
                             {/* Verification Status Messages */}
                             {verificationStatus.error && (
-                                <div className="mt-3 flex items-center gap-2 text-red-600">
-                                    <AlertCircle size={18} />
-                                    <p className="text-sm font-medium">{verificationStatus.error}</p>
+                                <div className="mt-3 flex items-center gap-2 text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 animate-in fade-in slide-in-from-top-2">
+                                    <AlertCircle size={20} />
+                                    <p className="text-sm font-bold">{verificationStatus.error}</p>
                                 </div>
                             )}
 
                             {verificationStatus.verified && (
-                                <div className="mt-3 flex items-center gap-2 text-green-600">
-                                    <CheckCircle size={18} />
-                                    <p className="text-sm font-medium">Verified: {verificationStatus.lawyerName}</p>
+                                <div className="mt-3 flex items-center justify-between gap-2 text-green-700 bg-green-50 p-4 rounded-xl border border-green-100 animate-in zoom-in-95 duration-500">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                            <CheckCircle size={24} className="text-green-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black uppercase tracking-wider">Identity Verified</p>
+                                            <p className="text-lg font-bold text-stone-900">{verificationStatus.lawyerName}</p>
+                                        </div>
+                                    </div>
+                                    <div className="px-3 py-1 bg-green-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-green-200">
+                                        Verified Pro
+                                    </div>
                                 </div>
                             )}
 
-                            <p className="mt-2 text-sm text-stone-500">
-                                Your Bar Council number will be verified against official records
+                            {verificationStatus.pendingManualReview && (
+                                <div className="mt-3 flex items-center justify-between gap-2 text-amber-700 bg-amber-50 p-4 rounded-xl border border-amber-200 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                            <AlertCircle size={24} className="text-amber-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black uppercase tracking-wider">Manual Review Required</p>
+                                            <p className="text-xs text-stone-600 mt-0.5">Your Bar Council number was not found in our dataset. You can still register — an admin will verify your credentials.</p>
+                                        </div>
+                                    </div>
+                                    <div className="px-3 py-1 bg-amber-500 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg shadow-amber-200 whitespace-nowrap">
+                                        Pending Review
+                                    </div>
+                                </div>
+                            )}
+
+                            <p className="mt-4 text-xs font-medium text-stone-400 uppercase tracking-widest">
+                                YOUR BAR COUNCIL NUMBER IS SECURELY VERIFIED AGAINST BAR COUNCIL OF INDIA RECORDS
                             </p>
                         </div>
 
-                        {/* Show remaining fields only after verification */}
-                        {verificationStatus.verified && (
+                        {/* Show remaining fields after verification or pending manual review */}
+                        {(verificationStatus.verified || verificationStatus.pendingManualReview) && (
                             <>
-                                {/* Full Name - Auto-filled from verification */}
+                                {/* Full Name */}
                                 <div>
                                     <label className="block text-base font-semibold text-stone-900 mb-3">
                                         Full Name *
@@ -247,9 +291,11 @@ export default function LawyerRegistration() {
                                         onChange={handleInputChange}
                                         placeholder="Adv. Your Full Name"
                                         className="w-full px-6 py-4 bg-amber-50 border border-amber-200 rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                        readOnly
+                                        readOnly={verificationStatus.verified}
                                     />
-                                    <p className="mt-2 text-sm text-stone-500">Auto-filled from Bar Council records</p>
+                                    <p className="mt-2 text-sm text-stone-500">
+                                        {verificationStatus.verified ? 'Auto-filled from Bar Council records' : 'Enter your full name as per Bar Council records'}
+                                    </p>
                                 </div>
 
                                 {/* Email */}
@@ -423,6 +469,38 @@ export default function LawyerRegistration() {
                             {submitting ? 'Submitting...' : 'Complete Registration'}
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* Step 3: Pending Review Confirmation */}
+            {step === 3 && (
+                <div className="px-6 py-16 max-w-2xl mx-auto text-center">
+                    <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-8">
+                        <AlertCircle size={40} className="text-amber-600" />
+                    </div>
+                    <h1 className="text-3xl font-bold text-stone-900 mb-4">
+                        Registration Under Review
+                    </h1>
+                    <p className="text-lg text-stone-600 mb-3">
+                        Your registration has been submitted successfully.
+                    </p>
+                    <p className="text-stone-500 mb-10">
+                        Since your Bar Council number was not found in our automated records, an <strong className="text-stone-800">admin will manually verify</strong> your credentials. You will be able to log in once your account is approved.
+                    </p>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-10 text-left">
+                        <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-3">What happens next?</p>
+                        <ul className="space-y-2 text-sm text-stone-600">
+                            <li className="flex items-start gap-2"><span className="text-amber-600 font-bold mt-0.5">1.</span> An admin reviews your Bar Council credentials</li>
+                            <li className="flex items-start gap-2"><span className="text-amber-600 font-bold mt-0.5">2.</span> Once approved, your account is activated</li>
+                            <li className="flex items-start gap-2"><span className="text-amber-600 font-bold mt-0.5">3.</span> You can then log in to CaseBridge and start accepting cases</li>
+                        </ul>
+                    </div>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="px-10 py-4 bg-[#4a3728] text-white rounded-xl font-bold uppercase tracking-widest hover:bg-[#3d2e22] transition-all"
+                    >
+                        Back to Home
+                    </button>
                 </div>
             )}
         </div>

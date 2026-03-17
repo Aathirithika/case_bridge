@@ -7,12 +7,15 @@ import SearchConsole from './SearchConsole';
 import LawyerShowcase from './LawyerShowcase';
 import SiteFooter from './SiteFooter';
 import VoiceAssistantModal from './VoiceAssistantModal';
+import ChatMessaging from './ChatMessaging';
+import { motion } from 'framer-motion';
 
 export default function CaseBridgeLanding() {
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [lawyers, setLawyers] = useState([]);
     const [showVoiceAssistant, setShowVoiceAssistant] = useState(false);
+    const [showAIChat, setShowAIChat] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -50,13 +53,26 @@ export default function CaseBridgeLanding() {
             <main className="flex-1 flex flex-col items-center justify-center px-6 py-20 relative overflow-hidden">
                 {/* Decorative Background Elements */}
                 <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden opacity-10">
-                    <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-[#8d6e63] rounded-full blur-[120px]"></div>
-                    <div className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] bg-[#4a3728] rounded-full blur-[150px]"></div>
+                    <motion.div 
+                        animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }} 
+                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-[#8d6e63] rounded-full blur-[120px]"
+                    ></motion.div>
+                    <motion.div 
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.9, 0.5] }} 
+                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                        className="absolute -bottom-[20%] -right-[10%] w-[50%] h-[50%] bg-[#4a3728] rounded-full blur-[150px]"
+                    ></motion.div>
                 </div>
 
                 <div className="w-full max-w-7xl relative z-10">
                     {/* Hero Section */}
-                    <div className="text-center mb-16">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="text-center mb-16"
+                    >
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#4a3728]/5 border border-[#4a3728]/10 rounded-full mb-10">
                             <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
                             <span className="text-[10px] font-black text-[#4a3728] uppercase tracking-[0.2em]">Next Generation Legal Tech</span>
@@ -80,22 +96,27 @@ export default function CaseBridgeLanding() {
                                 Get Started Now
                             </button>
                             <button
-                                onClick={() => setShowVoiceAssistant(true)}
+                                onClick={() => setShowAIChat(true)}
                                 className="w-full sm:w-auto px-10 py-5 bg-white border-2 border-[#4a3728]/20 text-[#4a3728] rounded-md font-black text-xs uppercase tracking-[0.2em] hover:bg-[#4a3728]/5 transition-all active:scale-95"
                             >
                                 Ask a Question
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
 
                     {/* Integrated Search Console */}
-                    <div className="max-w-5xl mx-auto mb-20 px-4">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                        className="max-w-5xl mx-auto mb-20 px-4"
+                    >
                         <SearchConsole
                             searchTerm={searchTerm}
                             setSearchTerm={setSearchTerm}
                             onSearch={handleSearch}
                         />
-                    </div>
+                    </motion.div>
 
                     {/* Integrated Lawyer Showcase */}
                     <LawyerShowcase
@@ -106,29 +127,47 @@ export default function CaseBridgeLanding() {
 
                     {/* Features Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-                        <div className="bg-white p-8 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-stone-100 flex flex-col items-center text-center group hover:border-[#8d6e63]/30 transition-all duration-300">
-                            <div className="w-14 h-14 bg-[#faf7f0] rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <Mic className="w-7 h-7 text-[#4a3728]" />
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-amber-900/5 flex flex-col items-center text-center group hover:border-amber-900/20 hover:-translate-y-1 transition-all duration-300"
+                        >
+                            <div className="w-14 h-14 bg-gradient-to-br from-amber-50 to-stone-100 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm border border-stone-200 transition-transform">
+                                <Mic className="w-7 h-7 text-amber-800" />
                             </div>
-                            <h3 className="text-sm font-black text-[#1a1a1a] uppercase tracking-widest mb-3">Voice Support</h3>
+                            <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest mb-3">Voice Support</h3>
                             <p className="text-xs text-stone-500 font-medium leading-relaxed">Multilingual AI voice assistance for instant legal guidance.</p>
-                        </div>
+                        </motion.div>
 
-                        <div className="bg-white p-8 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-stone-100 flex flex-col items-center text-center group hover:border-[#8d6e63]/30 transition-all duration-300">
-                            <div className="w-14 h-14 bg-[#faf7f0] rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <UserCheck className="w-7 h-7 text-[#4a3728]" />
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                            className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-amber-900/5 flex flex-col items-center text-center group hover:border-amber-900/20 hover:-translate-y-1 transition-all duration-300"
+                        >
+                            <div className="w-14 h-14 bg-gradient-to-br from-amber-50 to-stone-100 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm border border-stone-200 transition-transform">
+                                <UserCheck className="w-7 h-7 text-amber-800" />
                             </div>
-                            <h3 className="text-sm font-black text-[#1a1a1a] uppercase tracking-widest mb-3">Vetted Experts</h3>
+                            <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest mb-3">Vetted Experts</h3>
                             <p className="text-xs text-stone-500 font-medium leading-relaxed">Direct access to top-rated, verified legal professionals across India.</p>
-                        </div>
+                        </motion.div>
 
-                        <div className="bg-white p-8 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-stone-100 flex flex-col items-center text-center group hover:border-[#8d6e63]/30 transition-all duration-300">
-                            <div className="w-14 h-14 bg-[#faf7f0] rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                                <Lock className="w-7 h-7 text-[#4a3728]" />
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
+                            className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-amber-900/5 flex flex-col items-center text-center group hover:border-amber-900/20 hover:-translate-y-1 transition-all duration-300"
+                        >
+                            <div className="w-14 h-14 bg-gradient-to-br from-amber-50 to-stone-100 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 shadow-sm border border-stone-200 transition-transform">
+                                <Lock className="w-7 h-7 text-amber-800" />
                             </div>
-                            <h3 className="text-sm font-black text-[#1a1a1a] uppercase tracking-widest mb-3">Confidential</h3>
+                            <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest mb-3">Confidential</h3>
                             <p className="text-xs text-stone-500 font-medium leading-relaxed">Bank-grade security ensures your legal matters remain private.</p>
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Social/Trust proof */}
@@ -160,6 +199,16 @@ export default function CaseBridgeLanding() {
                 onClose={() => setShowVoiceAssistant(false)}
                 onSubmitIssue={() => navigate('/login')}
             />
+
+            {showAIChat && (
+                <ChatMessaging
+                    caseId="ai-chat-session"
+                    currentUser={{ name: 'Guest', role: 'client' }}
+                    recipientUser={{ _id: 'ai-assistant', name: 'CaseBridge AI', role: 'ai' }}
+                    isOpen={showAIChat}
+                    onClose={() => setShowAIChat(false)}
+                />
+            )}
         </div>
     );
 }

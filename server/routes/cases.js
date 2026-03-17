@@ -213,7 +213,7 @@ router.post('/', protect, async (req, res) => {
             description,
             client: clientId,
             lawyer: lawyerId,
-            priority: priority || 'medium',
+            priority: priority ? (priority.toLowerCase() === 'normal' ? 'medium' : priority.toLowerCase()) : 'medium',
             status: 'submitted',
             submissionMethod: submissionMethod || 'form',
             voiceTranscript,

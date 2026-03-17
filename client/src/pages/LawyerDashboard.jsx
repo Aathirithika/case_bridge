@@ -23,6 +23,7 @@ import api from '../utils/axiosConfig';
 import ChatMessaging from '../components/ChatMessaging';
 import Navbar from '../components/Navbar';
 import SiteFooter from '../components/SiteFooter';
+import CaseCalendar from '../components/CaseCalendar';
 
 export default function LawyerDashboard() {
     const navigate = useNavigate();
@@ -285,6 +286,12 @@ export default function LawyerDashboard() {
                     Case Management
                 </button>
                 <button
+                    onClick={() => setDashboardTab('calendar')}
+                    className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'calendar' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
+                >
+                    📅 Calendar
+                </button>
+                <button
                     onClick={() => setDashboardTab('profile')}
                     className={`px-8 py-5 text-xs font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap ${dashboardTab === 'profile' ? 'border-[#4a3728] text-[#4a3728]' : 'border-transparent text-stone-400'}`}
                 >
@@ -479,6 +486,63 @@ export default function LawyerDashboard() {
                             )}
                         </div>
                     </>
+                )}
+
+                {dashboardTab === 'calendar' && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div>
+                            <h2 className="text-3xl font-black text-[#1a1a1a] tracking-tight">Case Calendar</h2>
+                            <p className="text-[#8d6e63] font-medium italic mt-1">View all client case events and hiring dates at a glance.</p>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2">
+                                <CaseCalendar cases={cases} />
+                            </div>
+                            <div className="space-y-4">
+                                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6">
+                                    <p className="text-xs font-black text-stone-500 uppercase tracking-widest mb-4">Case Summary</p>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-stone-600">Pending</span>
+                                            <span className="text-sm font-black text-amber-700">{statistics.pendingRequests}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-stone-600">Active</span>
+                                            <span className="text-sm font-black text-yellow-700">{statistics.activeCases}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-stone-600">Completed</span>
+                                            <span className="text-sm font-black text-green-700">{statistics.completedCases}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-t border-amber-100 pt-3">
+                                            <span className="text-sm font-bold text-stone-800">Total Cases</span>
+                                            <span className="text-sm font-black text-[#4a3728]">{statistics.totalCases}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6">
+                                    <p className="text-xs font-black text-stone-500 uppercase tracking-widest mb-4">Recent Activity</p>
+                                    {cases.length === 0 ? (
+                                        <p className="text-sm text-stone-400 italic">No cases yet.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {[...cases].sort((a,b)=> new Date(b.updatedAt||b.createdAt) - new Date(a.updatedAt||a.createdAt)).slice(0,5).map(c => (
+                                                <div key={c._id} className="flex items-center gap-3">
+                                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                                        c.status==='submitted'?'bg-amber-500':c.status==='under_review'?'bg-blue-500':c.status==='in_progress'?'bg-yellow-500':'bg-green-500'
+                                                    }`}/>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-bold text-stone-800 truncate">{c.title}</p>
+                                                        <p className="text-[10px] text-stone-400">{c.client?.name} • {new Date(c.updatedAt||c.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {dashboardTab === 'profile' && (
