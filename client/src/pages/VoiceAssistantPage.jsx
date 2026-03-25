@@ -32,9 +32,15 @@ export default function VoiceAssistantPage() {
   ];
 
   useEffect(() => {
-    // Welcome message when page loads
-    speak(t.voice.subtitle);
-  }, [language]);
+    // Welcome message when page loads (only if voice is enabled)
+    try {
+      if (typeof speak === 'function') {
+        speak(t.voice.subtitle);
+      }
+    } catch (err) {
+      console.warn('Speech synthesis unavailable:', err);
+    }
+  }, []);
 
   const handleTranscriptChange = (transcript) => {
     setQuery(transcript);
